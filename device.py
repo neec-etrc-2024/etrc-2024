@@ -1,8 +1,24 @@
-from etrobo_python import Motor, ColorSensor
+from etrobo_python import Motor, ColorSensor, Hub, GyroSensor, SonarSensor, TouchSensor
 
 
 class Device:
-    def set_device(self, left: Motor, right: Motor, color: ColorSensor):
-        self.left_motor = left
-        self.right_motor = right
-        self.color_sensor = color
+
+    def __init__(
+        self,
+        hub: Hub,
+        color_sensor: ColorSensor,
+        gyro_sensor: GyroSensor,
+        sonar_sensor: SonarSensor,
+        touch_sensor: TouchSensor,
+        left_motor: Motor,
+        right_motor: Motor,
+        arm_motor: Motor,
+    ):
+        self.hub = hub
+        self.color_sensor = color_sensor
+        self.gyro_sensor = gyro_sensor
+        self.sonar_sensor = sonar_sensor
+        self.touch_sensor = touch_sensor
+        self.left_motor = left_motor
+        self.right_motor = right_motor
+        self.arm_motor = arm_motor

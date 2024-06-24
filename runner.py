@@ -66,3 +66,15 @@ class LineTrace(IRunner):
             else:
                 self.device.right_motor.set_power(self.base_pwm)
                 self.device.left_motor.set_power(int(self.base_pwm / (1 - power_ratio)))
+
+
+class Straight(IRunner):
+    def __init__(self, speed: int, device: Device) -> None:
+        super().__init__()
+        self.speed = speed
+        self.left_motor = device.left_motor
+        self.right_motor = device.right_motor
+
+    def run(self):
+        self.left_motor.set_power(self.speed)
+        self.right_motor.set_power(self.speed)
