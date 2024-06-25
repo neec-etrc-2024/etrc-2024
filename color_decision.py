@@ -7,7 +7,8 @@ class ColorDecision(TerminationChecker):
         
         def __init__(self) -> None:
             super().__init__()
-            self.target_color = 0 # 検知する色        
+            self.target_color = 0 # 検知する色
+   
         def check_met(self) -> bool:
             return False
         

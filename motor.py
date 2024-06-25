@@ -6,11 +6,11 @@ class Motor:
     def __init__(self) -> None:
         self.speed = 0
 
-    def set_speed(self, speed) -> None:
+    def set_speed(self, speed:int) -> None:
         """モータのスピードを設定する
 
         Args:
-            speed (_type_): スピード
+            speed (int): スピード
         """
         self.speed = speed
 
@@ -18,7 +18,7 @@ class Motor:
         """モータのスピードを取得する
 
         Returns:
-            _type_: スピード
+            int: スピード
         """
         return self.speed
     

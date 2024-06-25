@@ -2,6 +2,8 @@
 from abc import ABCMeta, abstractmethod
 
 class Run(metaclass=ABCMeta):
+    """走行インターフェース"""
+
     @abstractmethod
-    def run()->None:
+    def run() -> None:
         raise NotImplementedError
