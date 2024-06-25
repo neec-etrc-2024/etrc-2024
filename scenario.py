@@ -6,6 +6,6 @@ class Scenario:
         """シナリオを実行する"""
         pass
 
-    def change_scenario(self) -> None:
+    def __change_scenario(self) -> None:
         """シナリオを切り替える"""
         pass
