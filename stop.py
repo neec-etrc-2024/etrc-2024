@@ -1,6 +1,7 @@
 # 停止
 from run import Run
 
+
 class Stop(Run):
     """停止"""
 

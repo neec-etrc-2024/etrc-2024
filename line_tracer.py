@@ -2,9 +2,10 @@
 
 from run import Run
 
+
 class LineTracer(Run):
     """ライントレーサー"""
-    
+
     def run(self) -> None:
         return None
 
