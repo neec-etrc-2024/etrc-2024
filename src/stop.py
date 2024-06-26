@@ -1,5 +1,5 @@
 # 停止
-from run import Run
+from interface.run import Run
 
 
 class Stop(Run):
