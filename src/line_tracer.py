@@ -1,6 +1,6 @@
 # ライントレーサー
 
-from run import Run
+from interface.run import Run
 
 
 class LineTracer(Run):
