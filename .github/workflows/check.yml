@@ -1,0 +1,37 @@
+name: Format code # ワークフローの名前を指定
+
+on: # トリガー条件を指定
+  push: # コミットに反応
+    branches: [2nd_dev] # 特定ブランチに対するコミットをトリガー
+
+jobs: # ジョブの定義を開始
+  formatter: # ジョブ名を指定
+    name: formatter # ジョブの名前
+    runs-on: ubuntu-latest # Ubuntu Linux 上で実行
+    strategy: # マトリクス戦略の設定
+      matrix:
+        python-version: [3.12.4] # Pythonバージョン3.9を指定
+    permissions:
+      contents: write # コンテンツに対する書き込み権限を設定
+    steps: # ジョブ内のステップの定義を開始
+      - name: Checkout Repository # リポジトリのチェックアウト
+        uses: actions/checkout@v4 # GitHubリポジトリからコードをチェックアウト
+      - name: Set up Python ${{ matrix.python-version }} # Python環境のセットアップ
+        uses: actions/setup-python@v4 # Python環境のセットアップアクションを使用
+        with:
+          python-version: ${{ matrix.python-version }} # マトリクスで指定されたPythonバージョンを使用
+      - name: Install Dependencies # 依存関係のインストール
+        run: |
+          python -m pip install --upgrade pip # pipをアップグレード
+          pip install autoflake black isort # autoflake、black、isortをインストール
+      - name: autoflake # autoflakeを使用してコードを修正
+        run: autoflake -r .
+      - name: black # blackを使用してコードをフォーマット
+        run: black .
+      - name: isort # isortを使用してインポートステートメントを整理
+        run: isort .
+      - name: Auto Commit # 自動コミット
+        uses: stefanzweifel/git-auto-commit-action@v5 # 自動コミットアクションを使用
+        with:
+          commit_message: Apply Code Formatter # コミットメッセージを指定
+          branch: ${{ github.ref }} # 現在のブランチにコミット
