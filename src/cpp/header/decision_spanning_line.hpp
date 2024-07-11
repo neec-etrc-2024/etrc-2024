@@ -8,4 +8,3 @@ class DecisionSpanningLine : public TerminationChecker
 public:
     bool check_met() override;
 };
-
