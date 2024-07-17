@@ -2,19 +2,25 @@
 #define _STRAIGHT_HPP_
 
 #include "behaviors/IBehavior.hpp"
+#include "devices/RunMotorController.hpp"
+
+using namespace devices;
 
 namespace behaviors {
 class Straight : public IBehavior {
 private:
-  /* data */
+  int base_speed;
+  RunMotorController &motor_controller;
+
 public:
-  Straight(/* args */);
+  Straight(RunMotorController &motor_controller, int base_speed = 50);
   void run() override;
   void init() override;
   ~Straight();
 };
 
-Straight::Straight(/* args */) {}
+Straight::Straight(RunMotorController &motor_controller, int base_speed = 50)
+    : base_speed(base_speed), motor_controller(motor_controller) {}
 
 Straight::~Straight() {}
 

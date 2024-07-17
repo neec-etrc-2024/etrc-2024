@@ -13,6 +13,13 @@ public:
   void init() override;
   ~DistanceCondition();
 };
+
+DistanceCondition::DistanceCondition(/* args */) {}
+
+bool DistanceCondition::isCompleted() { return false; }
+void DistanceCondition::init() {}
+
+DistanceCondition::~DistanceCondition() {}
 } // namespace conditions
 
 #endif // _DISTANCE_CONDITION_HPP_

@@ -13,14 +13,15 @@ private:
   void change_scenario();
 
 public:
-  ScenarioSequencer(/* args */);
+  ScenarioSequencer();
   void run();
 
   void append(Scenario &);
   ~ScenarioSequencer();
 };
 
-ScenarioSequencer::ScenarioSequencer(/* args */) {}
+ScenarioSequencer::ScenarioSequencer()
+    : scenarios(), current_scenario_index(0) {}
 
 ScenarioSequencer::~ScenarioSequencer() {}
 

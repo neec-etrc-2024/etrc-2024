@@ -17,6 +17,8 @@ CameraLineMonitor::CameraLineMonitor(/* args */) {}
 
 CameraLineMonitor::~CameraLineMonitor() {}
 
+double CameraLineMonitor::get_differences() const { return 0; }
+
 } // namespace informations
 
 #endif // _CAMERA_LINE_MONITOR_HPP_

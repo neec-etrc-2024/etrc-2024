@@ -13,13 +13,13 @@ private:
   void change_scene();
 
 public:
-  Scenario(/* args */);
+  Scenario();
   void append(Scene &scene);
   bool run();
   ~Scenario();
 };
 
-Scenario::Scenario(/* args */) {}
+Scenario::Scenario() : scenes(), current_scene_index(0) {}
 
 Scenario::~Scenario() {}
 
