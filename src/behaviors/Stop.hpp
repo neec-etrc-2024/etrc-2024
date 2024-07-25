@@ -17,7 +17,7 @@ public:
   void init() override;
 };
 
-Stop::Stop(RunMotorController &motorController)
+inline Stop::Stop(RunMotorController &motorController)
     : IBehavior(), motorController(motorController) {}
 } // namespace behaviors
 

@@ -19,10 +19,10 @@ public:
   ~Scene();
 };
 
-Scene::Scene(IBehavior &behavior, ICondition &condition)
+inline Scene::Scene(IBehavior &behavior, ICondition &condition)
     : behavior(behavior), condition(condition) {}
 
-Scene::~Scene() {}
+inline Scene::~Scene() {}
 
 } // namespace scenario_control
 

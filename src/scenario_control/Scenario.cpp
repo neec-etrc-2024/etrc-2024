@@ -1,6 +1,6 @@
 #include "scenario_control/Scenario.hpp"
 
-void scenario_control::Scenario::append(scenario_control::Scene &scene) {
+void scenario_control::Scenario::append(scenario_control::Scene *scene) {
   this->scenes.push_back(scene);
 }
 
@@ -10,7 +10,7 @@ bool scenario_control::Scenario::run() {
     return true;
   }
 
-  bool result = this->scenes[this->current_scene_index].run();
+  bool result = this->scenes[this->current_scene_index]->run();
   if (result) {
     this->change_scene();
   }

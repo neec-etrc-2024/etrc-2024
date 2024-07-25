@@ -7,21 +7,21 @@
 namespace scenario_control {
 class Scenario {
 private:
-  std::vector<Scene &> scenes;
+  std::vector<Scene *> scenes;
   std::size_t current_scene_index;
 
   void change_scene();
 
 public:
   Scenario();
-  void append(Scene &scene);
+  void append(Scene *scene);
   bool run();
   ~Scenario();
 };
 
-Scenario::Scenario() : scenes(), current_scene_index(0) {}
+inline Scenario::Scenario() : scenes(), current_scene_index(0) {}
 
-Scenario::~Scenario() {}
+inline Scenario::~Scenario() {}
 
 } // namespace scenario_control
 

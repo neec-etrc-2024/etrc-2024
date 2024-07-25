@@ -14,12 +14,12 @@ public:
   ~DistanceCondition();
 };
 
-DistanceCondition::DistanceCondition(/* args */) {}
+inline DistanceCondition::DistanceCondition(/* args */) {}
 
-bool DistanceCondition::isCompleted() { return false; }
-void DistanceCondition::init() {}
+inline bool DistanceCondition::isCompleted() { return false; }
+inline void DistanceCondition::init() {}
 
-DistanceCondition::~DistanceCondition() {}
+inline DistanceCondition::~DistanceCondition() {}
 } // namespace conditions
 
 #endif // _DISTANCE_CONDITION_HPP_

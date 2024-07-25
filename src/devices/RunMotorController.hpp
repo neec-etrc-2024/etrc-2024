@@ -3,6 +3,9 @@
 
 #include "Motor.hpp"
 #include <mutex>
+extern "C" {
+#include "kernel.h"
+}
 
 using namespace spikeapi;
 
@@ -20,15 +23,16 @@ private:
 
   int left_pwm;
   int right_pwm;
-  std::mutex pwm_mutex;
+  ID powersem_id;
 
   MotorCounts counts;
-  std::mutex counts_mutex;
+  ID countssem_id;
 
   int check_pwm(int pwm);
 
 public:
-  RunMotorController(Motor &left_wheel, Motor &right_wheel);
+  RunMotorController(Motor &left_wheel, Motor &right_wheel, ID powersem_id,
+                     ID countssem_id);
   void set_pwm(int left_pwm, int right_pwm);
   void get_counts(MotorCounts &counts);
   void update();
@@ -37,11 +41,14 @@ public:
   ~RunMotorController();
 };
 
-RunMotorController::RunMotorController(Motor &left_wheel, Motor &right_wheel)
+inline RunMotorController::RunMotorController(Motor &left_wheel,
+                                              Motor &right_wheel,
+                                              ID powersem_id, ID countssem_id)
     : left_wheel(left_wheel), right_wheel(right_wheel), left_pwm(0),
-      right_pwm(0), pwm_mutex(), counts(), counts_mutex() {}
+      right_pwm(0), powersem_id(powersem_id), counts(),
+      countssem_id(countssem_id) {}
 
-RunMotorController::~RunMotorController() {}
+inline RunMotorController::~RunMotorController() {}
 } // namespace devices
 
 #endif // _RUN_MOTOR_CONTROLLER_HPP_
