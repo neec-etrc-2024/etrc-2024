@@ -25,6 +25,8 @@ private:
   double ki;
   double kd;
 
+  double calc_pid(double diff);
+
 public:
   LineTrace(LINE_DIRECTION line_direction, RunMotorController &motor_controller,
             ILineMonitor &line_monitor, int base_speed = 50, double kp = 0.0,

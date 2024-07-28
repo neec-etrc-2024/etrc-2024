@@ -2,7 +2,6 @@
 #define _RUN_MOTOR_CONTROLLER_HPP_
 
 #include "Motor.hpp"
-#include <mutex>
 extern "C" {
 #include "kernel.h"
 }

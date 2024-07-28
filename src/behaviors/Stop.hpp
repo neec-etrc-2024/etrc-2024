@@ -18,7 +18,9 @@ public:
 };
 
 inline Stop::Stop(RunMotorController &motorController)
-    : IBehavior(), motorController(motorController) {}
+    : IBehavior(), motorController(motorController) {
+  this->motorController.set_pwm(0, 0);
+}
 } // namespace behaviors
 
 #endif // _STOP_HPP_

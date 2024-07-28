@@ -7,9 +7,7 @@ void RunMotorController::set_pwm(int left_pwm, int right_pwm) {
   left_pwm = check_pwm(left_pwm);
   right_pwm = check_pwm(right_pwm);
 
-  printf("setPWM\n");
   wai_sem(this->powersem_id);
-  printf("setPWM:into SEM\n");
   this->left_pwm = left_pwm;
   this->right_pwm = right_pwm;
   sig_sem(this->powersem_id);
@@ -42,9 +40,7 @@ void RunMotorController::update() {
 }
 
 void RunMotorController::apply_pwm() {
-  printf("applyPWM\n");
   wai_sem(this->powersem_id);
-  printf("applyPWM:into SEM\n");
   left_wheel.set_power(left_pwm);
   right_wheel.set_power(right_pwm);
   sig_sem(this->powersem_id);
