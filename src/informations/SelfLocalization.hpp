@@ -18,17 +18,17 @@ public:
   ~SelfLocalization();
 };
 
-SelfLocalization::SelfLocalization(/* args */) {}
+inline SelfLocalization::SelfLocalization(/* args */) {}
 
-SelfLocalization::~SelfLocalization() {}
+inline SelfLocalization::~SelfLocalization() {}
 
-void SelfLocalization::get_location(Location &location) const {
+inline void SelfLocalization::get_location(Location &location) const {
   location.x = 0;
   location.y = 0;
   location.theta = 0;
 }
 
-void SelfLocalization::update() {}
+inline void SelfLocalization::update() {}
 
 } // namespace informations
 

@@ -13,11 +13,11 @@ public:
   ~CameraLineMonitor();
 };
 
-CameraLineMonitor::CameraLineMonitor(/* args */) {}
+inline CameraLineMonitor::CameraLineMonitor(/* args */) {}
 
-CameraLineMonitor::~CameraLineMonitor() {}
+inline CameraLineMonitor::~CameraLineMonitor() {}
 
-double CameraLineMonitor::get_differences() const { return 0; }
+inline double CameraLineMonitor::get_differences() const { return 0; }
 
 } // namespace informations
 

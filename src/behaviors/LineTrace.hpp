@@ -25,6 +25,8 @@ private:
   double ki;
   double kd;
 
+  double calc_pid(double diff);
+
 public:
   LineTrace(LINE_DIRECTION line_direction, RunMotorController &motor_controller,
             ILineMonitor &line_monitor, int base_speed = 50, double kp = 0.0,
@@ -34,15 +36,15 @@ public:
   ~LineTrace();
 };
 
-LineTrace::LineTrace(LINE_DIRECTION line_direction,
-                     RunMotorController &motor_controller,
-                     ILineMonitor &line_monitor, int base_speed = 50,
-                     double kp = 0.0, double ki = 0.0, double kd = 0.0)
+inline LineTrace::LineTrace(LINE_DIRECTION line_direction,
+                            RunMotorController &motor_controller,
+                            ILineMonitor &line_monitor, int base_speed,
+                            double kp, double ki, double kd)
     : line_direction(line_direction), motor_controller(motor_controller),
       line_monitor(line_monitor), base_speed(base_speed), kp(kp), ki(ki),
       kd(kd) {}
 
-LineTrace::~LineTrace() {}
+inline LineTrace::~LineTrace() {}
 
 } // namespace behaviors
 

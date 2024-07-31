@@ -12,9 +12,9 @@ public:
   ~CameraController();
 };
 
-CameraController::CameraController(/* args */) {}
+inline CameraController::CameraController(/* args */) {}
 
-CameraController::~CameraController() {}
+inline CameraController::~CameraController() {}
 
 } // namespace devices
 

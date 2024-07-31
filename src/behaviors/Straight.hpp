@@ -19,10 +19,10 @@ public:
   ~Straight();
 };
 
-Straight::Straight(RunMotorController &motor_controller, int base_speed = 50)
+inline Straight::Straight(RunMotorController &motor_controller, int base_speed)
     : base_speed(base_speed), motor_controller(motor_controller) {}
 
-Straight::~Straight() {}
+inline Straight::~Straight() {}
 
 } // namespace behaviors
 

@@ -17,10 +17,10 @@ public:
   ~ButtonCondition();
 };
 
-ButtonCondition::ButtonCondition(hub_button_t button, spikeapi::Hub &hub)
+inline ButtonCondition::ButtonCondition(hub_button_t button, spikeapi::Hub &hub)
     : button(button), hub(hub) {}
 
-ButtonCondition::~ButtonCondition() {}
+inline ButtonCondition::~ButtonCondition() {}
 
 } // namespace conditions
 
