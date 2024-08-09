@@ -33,7 +33,7 @@
       ><path d="M-204.2778 -266.0555 L107.7222 -266.0555 L107.7222 157.6944 L-204.2778 157.6944 L-204.2778 -266.0555 Z"
       /></clipPath
     ></defs
-    ><g style="fill:white; stroke:white;"
+    ><g style="fill:none; stroke:white;"
     ><rect x="0" y="0" width="416" style="clip-path:url(#clipPath1); stroke:none;" height="565"
     /></g
     ><g transform="scale(1.3333,1.3333) translate(-41.9444,-118.4444)" style="fill:rgb(153,204,255); text-rendering:geometricPrecision; stroke-width:2; shape-rendering:crispEdges; stroke:rgb(153,204,255);"
