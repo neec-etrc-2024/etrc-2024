@@ -1,94 +1,130 @@
 #include "app.hpp"
-#include "ColorSensor.hpp"
-#include "Hub.hpp"
-#include "Motor.hpp"
-#include "devices/RunMotorController.hpp"
-#include "scenario_control/Scenario.hpp"
-#include <stdio.h>
+#include "devices/CameraController.hpp"
+#include "gui/WindowManager.hpp"
+#include "informations/CameraLineMonitor.hpp"
+#include <FL/Fl.H>
+#include <FL/Fl_Box.H>
+#include <FL/Fl_RGB_Image.H>
+#include <FL/Fl_Window.H>
+#include <chrono>
+#include <csignal>
+#include <cstdio>
+#include <lccv.hpp>
+#include <mutex>
+#include <opencv2/opencv.hpp>
+#include <thread>
+#include <vector>
 
 extern "C" {
-#include "spike/hub/imu.h"
+#include "spike/hub/button.h"
+#include "spike/pup/colorsensor.h"
+#include "spike/pup/motor.h"
 }
 
-using namespace spikeapi;
-using namespace scenario_control;
-using namespace devices;
+void calc();
 
-Scenario *create_run_scenario(RunMotorController *motor, Hub *hub,
-                              ColorSensor *color_sensor);
+WindowManager wm;
+CameraController cam;
+informations::CameraLineMonitor line_monitor;
 
-Scenario *sce = nullptr;
+void main_task(intptr_t unused) { // main_task 最初に呼ばれる
+  pup_motor_t *left = NULL;
+  left = pup_motor_get_device(PBIO_PORT_ID_E);
+  pup_motor_t *right = NULL;
+  right = pup_motor_get_device(PBIO_PORT_ID_B);
+  pup_device_t *colorsensor = pup_color_sensor_get_device(PBIO_PORT_ID_C);
 
-Motor *left_wheel = nullptr;
-Motor *right_wheel = nullptr;
+  if (left == NULL || right == NULL || colorsensor == NULL) {
+    printf("motor not found\n");
+    return;
+  }
 
-Hub *hub = nullptr;
-ColorSensor *color_sensor = nullptr;
+  pup_motor_setup(left, PUP_DIRECTION_COUNTERCLOCKWISE, true);
+  pup_motor_setup(right, PUP_DIRECTION_CLOCKWISE, true);
 
-RunMotorController *run_motor_controller = nullptr;
+  int duty = pup_motor_set_duty_limit(left, 100);
+  pup_motor_set_duty_limit(right, 100);
+  printf("duty: %d\n", duty);
 
-void init_device();
-void show_debug();
+  printf("init\n");
 
-/* メインタスク(起動時にのみ関数コールされる) */
-void main_task(intptr_t unused) {
-  init_device();
-  sce = create_run_scenario(run_motor_controller, hub, color_sensor);
-  show_debug();
-  sta_cyc(UPDATE_TASK_CYC);
-  sta_cyc(CALC_TASK_CYC);
-  sta_cyc(SET_PARAM_TASK_CYC);
+  std::vector<std::thread> threads;
 
-  dly_tsk(600 * 1000 * 1000);
+  // シグナルをマスク
+  sigset_t mask;
+  sigemptyset(&mask);
+  sigaddset(&mask, SIGUSR2);
+  sigaddset(&mask, SIGALRM);
+  sigaddset(&mask, SIGPOLL);
+  sigaddset(&mask, SIGIO);
 
-  printf("Program End\n");
-  stp_cyc(UPDATE_TASK_CYC);
-  stp_cyc(CALC_TASK_CYC);
-  stp_cyc(SET_PARAM_TASK_CYC);
-
-  ext_tsk();
-}
-
-void update_task(intptr_t unused) { // 情報更新
-  run_motor_controller->update();
-  ext_tsk();
-}
-
-void calc_task(intptr_t unused) { // 判断
-  sce->run();
-
-  ext_tsk();
-}
-
-void set_param_task(intptr_t unused) { // パラメータ設定
-  run_motor_controller->apply_pwm();
-  ext_tsk();
-}
-
-void init_device() {
-  left_wheel = new Motor(PBIO_PORT_ID_E);
-  right_wheel = new Motor(PBIO_PORT_ID_B);
-
-  left_wheel->setup(PUP_DIRECTION_COUNTERCLOCKWISE);
-  right_wheel->setup(PUP_DIRECTION_CLOCKWISE);
-
-  run_motor_controller = new devices::RunMotorController(
-      *left_wheel, *right_wheel, MOTORPOWER_SEM, MOTORCOUNT_SEM);
-  run_motor_controller->init();
-  hub = new spikeapi::Hub();
-  color_sensor = new ColorSensor(PBIO_PORT_ID_C);
-  hub->init();
-}
-
-void show_debug() {
+  pthread_sigmask(SIG_BLOCK, &mask,
+                  NULL); // スレッド生成中はシグナル割り込みを無視
+  threads.emplace_back(std::thread(&WindowManager::main_th, &wm, 615, 462));
+  threads.emplace_back(std::thread(&CameraController::capture, &cam));
   while (1) {
-    pup_color_rgb_t rgb = color_sensor->get_rgb();
-    printf("R:%d G:%d B:%d\n", rgb.r, rgb.g, rgb.b);
-
-    if (hub->is_button_pressed(HUB_BUTTON_RIGHT)) {
+    /*
+    if (cam.ready()) {
+      printf("CAM\n");
+    }*/
+    if (wm.ready()) {
+      printf("WM\n");
+    }
+    if (cam.ready() && wm.ready()) {
       break;
     }
+  }
+  threads.emplace_back(std::thread(calc));
 
-    tslp_tsk(1 * 1000);
+  pthread_sigmask(SIG_UNBLOCK, &mask, NULL); // スレッドを作ったので割り込み許可
+
+  printf("READY\n");
+  hub_button_t pressed;
+  int duration = 1000 * 1000 / 30; // 30 fps
+  while (1) {
+    hub_button_is_pressed(&pressed);
+    if (pressed == HUB_BUTTON_LEFT) {
+      break;
+    }
+    tslp_tsk(1000);
+  }
+  printf("START\n");
+  while (1) {
+    double diff2 = line_monitor.get_differences();
+    printf("diff2: %f\n", diff2);
+    int base_speed = 50;
+
+    //  printf("diff: %d\n", diff);
+
+    if (diff2 < 0) {
+      pup_motor_set_power(right, base_speed);
+      pup_motor_set_power(left, base_speed - 20);
+    } else {
+      pup_motor_set_power(right, base_speed - 20);
+      pup_motor_set_power(left, base_speed);
+    }
+
+    tslp_tsk(1000 * 1000 / 30);
+  }
+
+  printf("start\n");
+  /*
+    for (auto &th : threads) {
+      th.join();
+    }
+    */
+}
+
+void calc() {
+  // printf("calc\n");
+  //  int id = wm.create_window(615, 462, "roi");
+
+  while (true) {
+    cv::Mat frame = cam.getFrame();
+    if (frame.empty()) {
+      continue;
+    }
+    line_monitor.update(frame);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000 / 30));
   }
 }

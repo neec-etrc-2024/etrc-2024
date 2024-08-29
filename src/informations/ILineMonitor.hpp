@@ -4,7 +4,7 @@
 namespace informations {
 class ILineMonitor {
 public:
-  virtual double get_differences() const = 0;
+  virtual double get_differences() = 0;
 };
 } // namespace informations
 

@@ -1,21 +1,23 @@
 #ifndef _CAMERA_CONTROLLER_HPP_
 #define _CAMERA_CONTROLLER_HPP_
 
+#include <lccv.hpp>
 #include <mutex>
+#include <opencv2/opencv.hpp>
 
-namespace devices {
 class CameraController {
 private:
-  /* data */
+  lccv::PiCamera *cam;
+  cv::Mat frame;
+  std::mutex mtx;
+  cv::VideoWriter videoWriter;
+  volatile bool is_ready;
+
 public:
-  CameraController(/* args */);
-  ~CameraController();
+  CameraController() : cam(), is_ready(false) {};
+  cv::Mat getFrame();
+  void capture();
+  bool ready() const { return is_ready; };
 };
-
-inline CameraController::CameraController(/* args */) {}
-
-inline CameraController::~CameraController() {}
-
-} // namespace devices
 
 #endif // _CAMERA_CONTROLLER_HPP_

@@ -20,9 +20,6 @@ extern "C" {
 #ifndef TOPPERS_MACRO_ONLY
 
 extern void main_task(intptr_t exinf);
-extern void update_task(intptr_t exinf);    // 情報更新
-extern void calc_task(intptr_t exinf);      // 制御計算
-extern void set_param_task(intptr_t exinf); // パラメータ設定
 
 #endif /* TOPPERS_MACRO_ONLY */
 

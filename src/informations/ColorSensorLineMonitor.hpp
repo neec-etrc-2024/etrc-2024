@@ -13,7 +13,7 @@ private:
 
 public:
   ColorSensorLineMonitor(ColorSensor &color_sensor);
-  double get_differences() const override;
+  double get_differences() override;
   ~ColorSensorLineMonitor();
 };
 
