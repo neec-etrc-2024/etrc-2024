@@ -11,7 +11,7 @@ class CameraLineMonitor : public ILineMonitor {
 private:
   double diff;
   std::mutex mtx;
-  bool trace_left;
+  std::atomic_bool trace_left;
   std::atomic_int line_width;
 
 public:
@@ -19,6 +19,7 @@ public:
   double get_differences() override;
   void update(cv::Mat &img, int window_id = -1);
   int get_line_width() { return line_width.load(); }
+  void set_trace_left(bool trace_left) { this->trace_left.store(trace_left); }
   ~CameraLineMonitor();
 };
 

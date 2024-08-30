@@ -21,24 +21,36 @@ extern WindowManager wm;
 
 void informations::CameraLineMonitor::update(cv::Mat &img, int window_id) {
   int roi_x = 520;
-  int roi_y = 500;
+  int roi_y = 1032;
   int roi_w = 600;
-  int roi_h = 400;
+  int roi_h = 200;
+
+  FILE *fp = fopen("camera.conf", "r");
+  if (fp != NULL) {
+    fscanf(fp, "%d %d %d %d", &roi_x, &roi_y, &roi_w, &roi_h);
+    fclose(fp);
+  }
 
   cv::Mat roi = img(cv::Rect(roi_x, roi_y, roi_w, roi_h));
-  cv::Mat gray;
-  cv::cvtColor(roi, gray, cv::COLOR_BGR2GRAY);
-  cv::Mat bin;
-  cv::threshold(gray, bin, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
-  cv::bitwise_not(bin, bin);
+  cv::Mat hsv;
+  cv::cvtColor(roi, hsv, cv::COLOR_BGR2HSV);
+  cv::Scalar lower(0, 0, 0);
+  cv::Scalar upper(180, 255, 100);
+  cv::Mat mask;
+  cv::inRange(hsv, lower, upper, mask);
 
   // ノイズ除去
   cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3));
-  cv::morphologyEx(bin, bin, cv::MORPH_OPEN, kernel);
+  cv::morphologyEx(mask, mask, cv::MORPH_OPEN, kernel);
 
   // 輪郭抽出
   std::vector<std::vector<cv::Point>> contours;
-  cv::findContours(bin, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+  cv::findContours(mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+  if (contours.size() == 0) {
+    printf("NO CONTOURS\n");
+    return;
+  }
 
   // 面積最大の輪郭を抽出
   double max_area = 0;
@@ -63,7 +75,8 @@ void informations::CameraLineMonitor::update(cv::Mat &img, int window_id) {
   cv::Point bottom_right = max_contour[0];
 
   int diff;
-  if (trace_left) {
+  // trace_left = false;
+  if (trace_left.load()) {
     diff = (top_left.x + bottom_left.x) / 2 - 300;
   } else {
     diff = (top_right.x + bottom_right.x) / 2 - 300;
@@ -84,16 +97,17 @@ void informations::CameraLineMonitor::update(cv::Mat &img, int window_id) {
 
   // 300+-100の範囲に圧縮
 
-  if (diff > 100) {
-    diff = 100;
-  } else if (diff < -100) {
-    diff = -100;
-  }
-
+  /*
+    if (diff > 100) {
+      diff = 100;
+    } else if (diff < -100) {
+      diff = -100;
+    }
+  */
   // printf("diff: %d\n", diff);
 
   mtx.lock();
-  this->diff = diff / 100.0;
+  this->diff = diff / 300.0;
   mtx.unlock();
 
   // printf("diff: %f\n", this->diff);

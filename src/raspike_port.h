@@ -1,4 +1,6 @@
-#include "spike/pup/motor.h"
+extern "C" {
+#include "spike/pup/motor.h" 
+}
 
 const pbio_port_id_t LEFT_MOTOR_PORT = PBIO_PORT_ID_E;
 const pup_direction_t LEFT_MOTOR_DIRECTION = PUP_DIRECTION_COUNTERCLOCKWISE;
