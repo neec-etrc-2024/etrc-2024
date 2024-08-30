@@ -73,6 +73,7 @@ void main_task(intptr_t unused) { // main_task 最初に呼ばれる
     if (cam.ready() && wm.ready()) {
       break;
     }
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
   threads.emplace_back(std::thread(calc));
 
