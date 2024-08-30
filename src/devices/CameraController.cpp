@@ -21,7 +21,7 @@ void CameraController::capture() {
       "output.mp4", fourcc, cam->options->framerate,
       cv::Size(cam->options->video_width, cam->options->video_height));
 
-  is_ready = true;
+  is_ready.store(true, std::memory_order_release);
   while (true) {
     cv::Mat frame;
     if (!cam->getVideoFrame(frame, 100)) {

@@ -1,4 +1,5 @@
 #include "informations/CameraLineMonitor.hpp"
+#include "gui/WindowManager.hpp"
 
 bool sortByYAscXAsc(const cv::Point &a, const cv::Point &b) {
   return (a.y < b.y) || (a.y == b.y && a.x < b.x);
@@ -16,7 +17,9 @@ bool sortByYDescXDesc(const cv::Point &a, const cv::Point &b) {
   return (a.y > b.y) || (a.y == b.y && a.x > b.x);
 }
 
-void informations::CameraLineMonitor::update(cv::Mat &img) {
+extern WindowManager wm;
+
+void informations::CameraLineMonitor::update(cv::Mat &img, int window_id) {
   int roi_x = 520;
   int roi_y = 500;
   int roi_w = 600;
@@ -64,6 +67,19 @@ void informations::CameraLineMonitor::update(cv::Mat &img) {
     diff = (top_left.x + bottom_left.x) / 2 - 300;
   } else {
     diff = (top_right.x + bottom_right.x) / 2 - 300;
+  }
+
+  line_width.store(top_right.x - top_left.x);
+
+  if (window_id >= 0) {
+    // x軸の中心線
+    cv::line(roi, cv::Point(300, 0), cv::Point(300, 400), cv::Scalar(0, 0, 255),
+             2);
+    // diffの線
+    cv::line(roi, cv::Point(300 + diff, 0), cv::Point(300 + diff, 400),
+             cv::Scalar(0, 255, 0), 2);
+
+    wm.update_window(window_id, roi);
   }
 
   // 300+-100の範囲に圧縮

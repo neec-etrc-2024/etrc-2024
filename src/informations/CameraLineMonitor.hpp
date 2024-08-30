@@ -1,6 +1,7 @@
 #ifndef _CAMERA_LINE_MONITOR_HPP_
 #define _CAMERA_LINE_MONITOR_HPP_
 
+#include <atomic>
 #include <informations/ILineMonitor.hpp>
 #include <mutex>
 #include <opencv2/opencv.hpp>
@@ -8,19 +9,21 @@
 namespace informations {
 class CameraLineMonitor : public ILineMonitor {
 private:
-  volatile double diff;
+  double diff;
   std::mutex mtx;
-  volatile bool trace_left;
+  bool trace_left;
+  std::atomic_int line_width;
 
 public:
   CameraLineMonitor();
   double get_differences() override;
-  void update(cv::Mat &img);
+  void update(cv::Mat &img, int window_id = -1);
+  int get_line_width() { return line_width.load(); }
   ~CameraLineMonitor();
 };
 
 inline CameraLineMonitor::CameraLineMonitor()
-    : diff(), mtx(), trace_left(true) {}
+    : diff(), mtx(), trace_left(true), line_width(0) {}
 
 inline CameraLineMonitor::~CameraLineMonitor() {}
 

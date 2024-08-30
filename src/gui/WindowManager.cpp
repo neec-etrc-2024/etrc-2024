@@ -5,7 +5,7 @@ void WindowManager::main_th(int w, int h) {
   Window *window = new Window(w, h, "main");
   windows.push_back(window);
   window->create_window();
-  is_ready = true;
+  is_ready.store(true, std::memory_order_release);
   printf("TRUE\n");
   Fl::run();
   Fl::unlock();
