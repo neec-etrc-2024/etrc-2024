@@ -19,6 +19,8 @@ bool sortByYDescXDesc(const cv::Point &a, const cv::Point &b) {
 
 extern WindowManager wm;
 
+int g_roi_w;
+
 void informations::CameraLineMonitor::update(cv::Mat &img, int window_id) {
   int roi_x = 520;
   int roi_y = 1032;
@@ -30,14 +32,22 @@ void informations::CameraLineMonitor::update(cv::Mat &img, int window_id) {
     fscanf(fp, "%d %d %d %d", &roi_x, &roi_y, &roi_w, &roi_h);
     fclose(fp);
   }
+  g_roi_w = roi_w;
 
   cv::Mat roi = img(cv::Rect(roi_x, roi_y, roi_w, roi_h));
   cv::Mat hsv;
   cv::cvtColor(roi, hsv, cv::COLOR_BGR2HSV);
   cv::Scalar lower(0, 0, 0);
   cv::Scalar upper(180, 255, 100);
+  cv::Scalar b_lower(100, 150, 0);
+  cv::Scalar b_upper(140, 255, 255);
   cv::Mat mask;
   cv::inRange(hsv, lower, upper, mask);
+
+  cv::Mat b_mask;
+  cv::inRange(hsv, b_lower, b_upper, b_mask);
+
+  mask = mask | b_mask;
 
   // ノイズ除去
   cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3));
@@ -64,7 +74,29 @@ void informations::CameraLineMonitor::update(cv::Mat &img, int window_id) {
     }
   }
 
-  std::vector<cv::Point> max_contour = contours[max_area_idx];
+  printf("max_area: %f\n", max_area);
+  int roi_center = roi_w / 2;
+  // 重心のX座標が最も真ん中に近い輪郭を抽出
+  std::sort(contours.begin(), contours.end(),
+            [roi_center](const std::vector<cv::Point> &a,
+                         const std::vector<cv::Point> &b) {
+              cv::Moments ma = cv::moments(a);
+              cv::Moments mb = cv::moments(b);
+              double center_a_x = ma.m10 / ma.m00;
+              double center_b_x = mb.m10 / mb.m00;
+              return std::abs(center_a_x - roi_center) <
+                     std::abs(center_b_x - roi_center);
+            });
+
+  int idx = 0;
+  for (size_t i = 0; i < contours.size(); i++) {
+    if (cv::contourArea(contours[i]) > 20000) {
+      idx = i;
+      break;
+    }
+  }
+  std::vector<cv::Point> max_contour = contours[idx];
+
   std::sort(max_contour.begin(), max_contour.end(), sortByYAscXAsc);
   cv::Point top_left = max_contour[0];
   std::sort(max_contour.begin(), max_contour.end(), sortByYAscXDesc);
@@ -77,20 +109,20 @@ void informations::CameraLineMonitor::update(cv::Mat &img, int window_id) {
   int diff;
   // trace_left = false;
   if (trace_left.load()) {
-    diff = (top_left.x + bottom_left.x) / 2 - 300;
+    diff = (top_left.x + bottom_left.x) / 2 - roi_w / 2;
   } else {
-    diff = (top_right.x + bottom_right.x) / 2 - 300;
+    diff = (top_right.x + bottom_right.x) / 2 - roi_w / 2;
   }
 
   line_width.store(top_right.x - top_left.x);
 
   if (window_id >= 0) {
     // x軸の中心線
-    cv::line(roi, cv::Point(300, 0), cv::Point(300, 400), cv::Scalar(0, 0, 255),
-             2);
+    cv::line(roi, cv::Point(roi_w / 2, 0), cv::Point(roi_w / 2, roi_h),
+             cv::Scalar(0, 0, 255), 2);
     // diffの線
-    cv::line(roi, cv::Point(300 + diff, 0), cv::Point(300 + diff, 400),
-             cv::Scalar(0, 255, 0), 2);
+    cv::line(roi, cv::Point(roi_w / 2 + diff, 0),
+             cv::Point(roi_w / 2 + diff, roi_h), cv::Scalar(0, 255, 0), 2);
 
     wm.update_window(window_id, roi);
   }
@@ -107,8 +139,8 @@ void informations::CameraLineMonitor::update(cv::Mat &img, int window_id) {
   // printf("diff: %d\n", diff);
 
   mtx.lock();
-  this->diff = diff / 300.0;
+  this->diff = diff / (roi_w / 2.0);
   mtx.unlock();
 
-  // printf("diff: %f\n", this->diff);
+  printf("diff: %f\n", this->diff);
 }

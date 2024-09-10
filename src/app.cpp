@@ -16,10 +16,12 @@
 #include <thread>
 #include <vector>
 
-extern "C" {
+extern "C"
+{
 #include "spike/hub/button.h"
 #include "spike/pup/colorsensor.h"
 #include "spike/pup/motor.h"
+#include "spike/pup/ultrasonicsensor.h"
 }
 
 void calc();
@@ -27,6 +29,7 @@ void calc();
 void test1();
 
 void setup_motor();
+void setup_ultrasonic_sensor();
 void wait_start();
 void pid_run();
 void curve();
@@ -38,10 +41,13 @@ informations::CameraLineMonitor line_monitor;
 
 pup_motor_t *left = NULL;
 pup_motor_t *right = NULL;
+pup_device_t *ultrasonic_sensor = NULL;
 
-void main_task(intptr_t unused) { // main_task 最初に呼ばれる
+void main_task(intptr_t unused)
+{ // main_task 最初に呼ばれる
 
   setup_motor();
+  setup_ultrasonic_sensor();
 
   printf("init\n");
 
@@ -59,15 +65,18 @@ void main_task(intptr_t unused) { // main_task 最初に呼ばれる
                   NULL); // スレッド生成中はシグナル割り込みを無視
   threads.emplace_back(std::thread(&WindowManager::main_th, &wm, 615, 462));
   threads.emplace_back(std::thread(&CameraController::capture, &cam));
-  while (1) {
+  while (1)
+  {
     /*
     if (cam.ready()) {
       printf("CAM\n");
     }*/
-    if (wm.ready()) {
+    if (wm.ready())
+    {
       printf("WM\n");
     }
-    if (cam.ready() && wm.ready()) {
+    if (cam.ready() && wm.ready())
+    {
       break;
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -82,22 +91,26 @@ void main_task(intptr_t unused) { // main_task 最初に呼ばれる
   wait_start();
   printf("START\n");
 
-  // pid_run();
+  pid_run();
   curve();
   stop();
 
-  for (auto &th : threads) {
+  for (auto &th : threads)
+  {
     th.join();
   }
 }
 
-void calc() {
+void calc()
+{
   // printf("calc\n");
   int id = wm.create_window(600, 400, "roi");
 
-  while (true) {
+  while (true)
+  {
     cv::Mat frame = cam.getFrame();
-    if (frame.empty()) {
+    if (frame.empty())
+    {
       continue;
     }
     line_monitor.update(frame, id);
@@ -105,28 +118,34 @@ void calc() {
   }
 }
 
-void test1() {
-  while (1) {
+void test1()
+{
+  while (1)
+  {
     tslp_tsk(10 * 1000);
   }
 }
 
-void wait_start() {
-  while (1) {
-    hub_button_t pressed;
-    hub_button_is_pressed(&pressed);
-    if (pressed == HUB_BUTTON_LEFT) {
+void wait_start()
+{
+  while (1)
+  {
+    int distance = pup_ultrasonic_sensor_distance(ultrasonic_sensor);
+    // printf("distance: %d\n", distance);
+    if (distance > 50)
+    {
       break;
     }
-    tslp_tsk(10 * 1000);
   }
 }
 
-void setup_motor() {
+void setup_motor()
+{
   left = pup_motor_get_device(LEFT_MOTOR_PORT);
   right = pup_motor_get_device(RIGHT_MOTOR_PORT);
 
-  if (left == NULL || right == NULL) {
+  if (left == NULL || right == NULL)
+  {
     printf("motor not found\n");
     ext_tsk();
   }
@@ -138,9 +157,21 @@ void setup_motor() {
   pup_motor_set_duty_limit(right, 100);
 }
 
-void pid_run() {
+void setup_ultrasonic_sensor()
+{
+  ultrasonic_sensor = pup_ultrasonic_sensor_get_device(PBIO_PORT_ID_F);
+  if (ultrasonic_sensor == NULL)
+  {
+    printf("ultrasonic sensor not found\n");
+    ext_tsk();
+  }
+}
+
+void pid_run()
+{
   FILE *fp = fopen("motor.conf", "r");
-  if (fp == NULL) {
+  if (fp == NULL)
+  {
     printf("motor.conf not found\n");
     ext_tsk();
   }
@@ -155,27 +186,35 @@ void pid_run() {
 
   int duration = 1000 * 1000 / 30; // 30 fps
   double prev_diff = 100;
-  line_monitor.set_trace_left(false);
-  while (1) {
+  line_monitor.set_trace_left(true);
+  while (1)
+  {
     double diff = line_monitor.get_differences();
-    if (prev_diff > 1) {
+    if (prev_diff > 1)
+    {
       prev_diff = diff;
     }
 
     double diff_diff = diff - prev_diff;
 
     int left_power, right_power;
-    if (diff >= 0) {
+    if (diff >= 0)
+    {
       right_power = base_power - diff * kp;
       left_power = base_power;
-    } else {
+    }
+    else
+    {
       left_power = base_power + diff * kp;
       right_power = base_power;
     }
 
-    if (diff_diff >= 0) {
+    if (diff_diff >= 0)
+    {
       right_power -= diff_diff * kd;
-    } else {
+    }
+    else
+    {
       left_power += diff_diff * kd;
     }
 
@@ -185,7 +224,8 @@ void pid_run() {
     int left_count = pup_motor_get_count(left);
     int right_count = pup_motor_get_count(right);
 
-    if (left_count >= 2900 && right_count >= 2900) {
+    if (left_count >= 2900 && right_count >= 2900)
+    {
       break;
     }
 
@@ -194,9 +234,11 @@ void pid_run() {
   }
 }
 
-void curve() {
+void curve()
+{
   FILE *fp = fopen("curve.conf", "r");
-  if (fp == NULL) {
+  if (fp == NULL)
+  {
     printf("motor.conf not found\n");
     ext_tsk();
   }
@@ -213,42 +255,54 @@ void curve() {
 
   int duration = 1000 * 1000 / 30; // 30 fps
   double prev_diff = 100;
-  line_monitor.set_trace_left(false);
-  while (1) {
+  line_monitor.set_trace_left(true);
+  while (1)
+  {
     double diff = line_monitor.get_differences();
     sum += diff;
-    if (prev_diff > 1) {
+    if (prev_diff > 1)
+    {
       prev_diff = diff;
     }
 
     double diff_diff = diff - prev_diff;
 
     int left_power, right_power;
-    if (diff >= 0) {
+    if (diff >= 0)
+    {
       right_power = base_power - diff * kp;
-      left_power = base_power;
-    } else {
       left_power = base_power + diff * kp;
-      right_power = base_power;
+    }
+    else
+    {
+      left_power = base_power + diff * kp;
+      right_power = base_power - diff * kp;
     }
 
-    if (diff_diff >= 0) {
-      right_power -= diff_diff * kd;
-    } else {
-      left_power += diff_diff * kd;
+    if (diff_diff >= 0)
+    {
+      right_power += diff_diff * kd;
+    }
+    else
+    {
+      left_power -= diff_diff * kd;
     }
 
     printf("sum*ki=%lf\n", sum * ki);
-    if (sum >= 0) {
+
+    if (sum >= 0)
+    {
       right_power -= sum * ki;
-    } else {
+    }
+    else
+    {
       left_power += sum * ki;
     }
 
     printf("left:%d,right:%d\n", left_power, right_power);
 
-    pup_motor_set_power(left, left_power);
-    pup_motor_set_power(right, right_power);
+    pup_motor_set_power(left, left_power >= 0 ? left_power : 0);
+    pup_motor_set_power(right, right_power >= 0 ? right_power : 0);
 
     int left_count = pup_motor_get_count(left);
     int right_count = pup_motor_get_count(right);
@@ -264,7 +318,8 @@ void curve() {
   }
 }
 
-void stop() {
+void stop()
+{
   pup_motor_stop(left);
   pup_motor_stop(right);
 }
