@@ -47,6 +47,9 @@ void informations::CameraLineMonitor::update(cv::Mat &img, int window_id) {
   cv::Mat b_mask;
   cv::inRange(hsv, b_lower, b_upper, b_mask);
 
+  int blue = cv::countNonZero(b_mask);
+  blue_count.store(blue);
+
   mask = mask | b_mask;
 
   // ノイズ除去
@@ -74,7 +77,7 @@ void informations::CameraLineMonitor::update(cv::Mat &img, int window_id) {
     }
   }
 
-  printf("max_area: %f\n", max_area);
+  // printf("max_area: %f\n", max_area);
   int roi_center = roi_w / 2;
   // 重心のX座標が最も真ん中に近い輪郭を抽出
   std::sort(contours.begin(), contours.end(),
@@ -95,6 +98,11 @@ void informations::CameraLineMonitor::update(cv::Mat &img, int window_id) {
       break;
     }
   }
+  if (cv::contourArea(contours[0]) <= 20000) {
+    printf("Deka Countras Not Found\n");
+    return;
+  }
+
   std::vector<cv::Point> max_contour = contours[idx];
 
   std::sort(max_contour.begin(), max_contour.end(), sortByYAscXAsc);
@@ -111,6 +119,7 @@ void informations::CameraLineMonitor::update(cv::Mat &img, int window_id) {
   if (trace_left.load()) {
     diff = (top_left.x + bottom_left.x) / 2 - roi_w / 2;
   } else {
+    printf("trace_right\n");
     diff = (top_right.x + bottom_right.x) / 2 - roi_w / 2;
   }
 
@@ -142,5 +151,5 @@ void informations::CameraLineMonitor::update(cv::Mat &img, int window_id) {
   this->diff = diff / (roi_w / 2.0);
   mtx.unlock();
 
-  printf("diff: %f\n", this->diff);
+  // printf("diff: %f\n", this->diff);
 }

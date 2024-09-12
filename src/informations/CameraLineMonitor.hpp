@@ -13,12 +13,14 @@ private:
   std::mutex mtx;
   std::atomic_bool trace_left;
   std::atomic_int line_width;
+  std::atomic_int blue_count;
 
 public:
   CameraLineMonitor();
   double get_differences() override;
   void update(cv::Mat &img, int window_id = -1);
   int get_line_width() { return line_width.load(); }
+  int get_blue_count() { return blue_count.load(); }
   void set_trace_left(bool trace_left) { this->trace_left.store(trace_left); }
   ~CameraLineMonitor();
 };
