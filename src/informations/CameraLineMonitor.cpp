@@ -99,7 +99,7 @@ void informations::CameraLineMonitor::update(cv::Mat &img, int window_id) {
     }
   }
   if (cv::contourArea(contours[0]) <= 20000) {
-    printf("Deka Countras Not Found\n");
+    // printf("Deka Countras Not Found\n");
     return;
   }
 
@@ -117,6 +117,7 @@ void informations::CameraLineMonitor::update(cv::Mat &img, int window_id) {
   int diff;
   // trace_left = false;
   if (trace_left.load()) {
+    printf("trace_left\n");
     diff = (top_left.x + bottom_left.x) / 2 - roi_w / 2;
   } else {
     printf("trace_right\n");

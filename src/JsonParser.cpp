@@ -1,14 +1,13 @@
-//#include "JsonParser.hpp"
+// #include "JsonParser.hpp"
 
-#include <nlohmann/json.hpp>
 #include <fstream>
+#include <nlohmann/json.hpp>
 
 using namespace nlohmann;
 
 json config;
 
-void loadConfig()
-{
-    std::ifstream ifs("settings.json");
-    config = json::parse(ifs);
+void loadConfig() {
+  std::ifstream ifs("settings.json");
+  config = json::parse(ifs);
 }
