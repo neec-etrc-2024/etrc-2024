@@ -58,11 +58,13 @@ bool straight1_enable = false;
 bool straight2_enable = false;
 bool curve1_enable = false;
 bool curve2_enable = false;
+bool kukan0_enable = false;
 bool kukan1_enable = false;
 bool kukan2_enable = false;
 bool kukan3_enable = false;
 int straight1_end = 0;
 int straight2_end = 0;
+int kukan0_end = 0;
 int kukan1_end = 0;
 int kukan2_end = 0;
 int kukan3_end = 0;
@@ -317,7 +319,7 @@ void curve1()
     int left_count = pup_motor_get_count(left);
     int right_count = pup_motor_get_count(right);
 
-    // printf("left:%d,right:%d\n", left_count, right_count);
+    printf("left:%d,right:%d\n", left_count, right_count);
     // int wid = line_monitor.get_line_width();
     // printf("width:%d\n", wid);
     // int blue = line_monitor.get_blue_count();
@@ -371,6 +373,8 @@ void curve2()
   }
 
   int duration = 1000 * 1000 / 30; // 30 fps
+  pup_motor_reset_count(left);
+  pup_motor_reset_count(right);
   while (1)
   {
     double diff = line_monitor.get_differences();
@@ -396,6 +400,8 @@ void kukan0()
   }
 
   int duration = 1000 * 1000 / 30; // 30 fps
+  pup_motor_reset_count(left);
+  pup_motor_reset_count(right);
   while (1)
   {
     double diff = line_monitor.get_differences();
@@ -406,15 +412,13 @@ void kukan0()
 
     // printf("left:%d,right:%d\n", left_count, right_count);
     // printf("blue:%d\n", blue);
-
-    if (blue < kukan1_)
+    if (left_count >= kukan0_end && right_count >= kukan0_end)
     {
       break;
     }
     tslp_tsk(duration);
   }
 }
-
 
 void kukan1()
 {

@@ -8,6 +8,6 @@ using namespace nlohmann;
 json config;
 
 void loadConfig() {
-  std::ifstream ifs("settings.json");
+  std::ifstream ifs("etrc-2024/settings.json");
   config = json::parse(ifs);
 }
