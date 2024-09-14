@@ -1,0 +1,89 @@
+{
+    "window": false,
+    "scenarios": [
+        {
+            "name": "straight1",
+            "base_speed": 70,
+            "p": 12,
+            "i": 0.0,
+            "d": 120,
+            "enable": false,
+            "end_condition": "distance",
+            "end": 2900
+        },
+        {
+            "name": "curve1",
+            "base_speed": 50,
+            "p": 30,
+            "i": 0.0,
+            "d": 100,
+            "enable": false,
+            "end_condition": "distance",
+            "end": 500
+        }
+    ],
+    "straight1": {
+        "base_speed": 70,
+        "p": 12,
+        "i": 0.0,
+        "d": 150,
+        "enable": true,
+        "end": 2900
+    },
+    "curve1": {
+        "base_speed": 50,
+        "p": 30,
+        "i": 0.0,
+        "d": 100,
+        "enable": true,
+        "end": 500
+    },
+    "straight2": {
+        "base_speed": 50,
+        "p": 12,
+        "i": 0.0,
+        "d": 120,
+        "enable": true,
+        "end": 1600
+    },
+    "curve2": {
+        "base_speed": 50,
+        "p": 30,
+        "i": 0.0,
+        "d": 130,
+        "enable": true,
+        "end": 500
+    },
+    "kukan0": {
+        "base_speed": 50,
+        "p": 12,
+        "i": 0.0,
+        "d": 120,
+        "enable": true,
+        "end": 200
+    },
+    "kukan1": {
+        "base_speed": 40,
+        "p": 30,
+        "i": 0.0,
+        "d": 0,
+        "enable": true,
+        "end": 50000
+    },
+    "kukan2": {
+        "base_speed": 40,
+        "p": 30,
+        "i": 0.0,
+        "d": 0,
+        "enable": true,
+        "end": 80000
+    },
+    "kukan3": {
+        "base_speed": 40,
+        "p": 30,
+        "i": 0.0,
+        "d": 0,
+        "enable": true,
+        "end": 300
+    }
+}

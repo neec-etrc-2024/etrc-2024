@@ -7,7 +7,7 @@ using namespace nlohmann;
 
 json config;
 
-void loadConfig() {
-  std::ifstream ifs("settings.json");
+void loadConfig(const char *filename) {
+  std::ifstream ifs(filename);
   config = json::parse(ifs);
 }

@@ -1,14 +1,11 @@
 #include "app.hpp"
+#include "FrameBuffer.hpp"
 #include "JsonParser.hpp"
 #include "Pid.hpp"
 #include "devices/CameraController.hpp"
 #include "gui/WindowManager.hpp"
 #include "informations/CameraLineMonitor.hpp"
 #include "raspike_port.h"
-#include <FL/Fl.H>
-#include <FL/Fl_Box.H>
-#include <FL/Fl_RGB_Image.H>
-#include <FL/Fl_Window.H>
 #include <chrono>
 #include <csignal>
 #include <cstdio>
@@ -18,8 +15,7 @@
 #include <thread>
 #include <vector>
 
-extern "C"
-{
+extern "C" {
 #include "spike/hub/button.h"
 #include "spike/pup/colorsensor.h"
 #include "spike/pup/motor.h"
@@ -47,6 +43,7 @@ void setup_pid();
 
 WindowManager wm;
 CameraController cam;
+FrameBuffer fb;
 informations::CameraLineMonitor line_monitor;
 
 pup_motor_t *left = NULL;
@@ -73,8 +70,7 @@ Pid *straight_pid = nullptr;
 Pid *kukan1_pid = nullptr;
 Pid *curve_pid = nullptr;
 
-void main_task(intptr_t unused)
-{ // main_task 最初に呼ばれる
+void main_task(intptr_t unused) { // main_task 最初に呼ばれる
 
   loadConfig();
 
@@ -96,13 +92,11 @@ void main_task(intptr_t unused)
 
   pthread_sigmask(SIG_BLOCK, &mask,
                   NULL); // スレッド生成中はシグナル割り込みを無視
-  if (window_enabled)
-  {
+  if (window_enabled) {
     threads.emplace_back(std::thread(&WindowManager::main_th, &wm, 615, 462));
   }
   threads.emplace_back(std::thread(&CameraController::capture, &cam));
-  while (1)
-  {
+  while (1) {
     /*
     if (cam.ready()) {
       printf("CAM\n");
@@ -112,10 +106,8 @@ void main_task(intptr_t unused)
       printf("WM\n");
     }
     */
-    if (cam.ready())
-    {
-      if (window_enabled && !wm.ready())
-      {
+    if (cam.ready()) {
+      if (window_enabled && !wm.ready()) {
         continue;
       }
 
@@ -129,6 +121,7 @@ void main_task(intptr_t unused)
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
   threads.emplace_back(std::thread(calc));
+  threads.emplace_back(std::thread(wm.update_th, &fb));
 
   pthread_sigmask(SIG_UNBLOCK, &mask, NULL); // スレッドを作ったので割り込み許可
 
@@ -149,26 +142,21 @@ void main_task(intptr_t unused)
   // curve();
   stop();
 
-  for (auto &th : threads)
-  {
+  for (auto &th : threads) {
     th.join();
   }
 }
 
-void calc()
-{
+void calc() {
   // printf("calc\n");
   int id = -1;
-  if (window_enabled)
-  {
+  if (window_enabled) {
     id = wm.create_window(600, 400, "roi");
   }
 
-  while (true)
-  {
+  while (true) {
     cv::Mat frame = cam.getFrame();
-    if (frame.empty())
-    {
+    if (frame.empty()) {
       continue;
     }
     line_monitor.update(frame, id);
@@ -176,35 +164,28 @@ void calc()
   }
 }
 
-void test1()
-{
-  while (1)
-  {
+void test1() {
+  while (1) {
     tslp_tsk(10 * 1000);
   }
 }
 
-void wait_start()
-{
-  while (1)
-  {
+void wait_start() {
+  while (1) {
     int distance = pup_ultrasonic_sensor_distance(ultrasonic_sensor);
     // printf("distance: %d\n", distance);
-    if (distance > 50)
-    {
+    if (distance > 50) {
       break;
     }
     tslp_tsk(10 * 1000);
   }
 }
 
-void setup_motor()
-{
+void setup_motor() {
   left = pup_motor_get_device(LEFT_MOTOR_PORT);
   right = pup_motor_get_device(RIGHT_MOTOR_PORT);
 
-  if (left == NULL || right == NULL)
-  {
+  if (left == NULL || right == NULL) {
     printf("motor not found\n");
     ext_tsk();
   }
@@ -216,18 +197,15 @@ void setup_motor()
   pup_motor_set_duty_limit(right, 100);
 }
 
-void setup_ultrasonic_sensor()
-{
+void setup_ultrasonic_sensor() {
   ultrasonic_sensor = pup_ultrasonic_sensor_get_device(PBIO_PORT_ID_F);
-  if (ultrasonic_sensor == NULL)
-  {
+  if (ultrasonic_sensor == NULL) {
     printf("ultrasonic sensor not found\n");
     ext_tsk();
   }
 }
 
-void setup_pid()
-{
+void setup_pid() {
   window_enabled = config["window"];
   int base_power = config["straight1"]["base_speed"];
   int kp = config["straight1"]["p"];
@@ -269,16 +247,13 @@ void setup_pid()
   kukan1_pid = new Pid(left, right, LEFT, kp, ki, kd, base_power);
 }
 
-void straight1()
-{
+void straight1() {
   printf("straight1\n");
-  if (!straight1_enable)
-  {
+  if (!straight1_enable) {
     return;
   }
   int duration = 1000 * 1000 / 30; // 30 fps
-  while (1)
-  {
+  while (1) {
     double diff = line_monitor.get_differences();
     straight_pid->run(diff);
 
@@ -291,26 +266,22 @@ void straight1()
     // int blue = line_monitor.get_blue_count();
     // printf("blue:%d\n", blue);
 
-    if (left_count >= straight1_end && right_count >= straight1_end)
-    {
+    if (left_count >= straight1_end && right_count >= straight1_end) {
       break;
     }
     tslp_tsk(duration);
   }
 }
 
-void curve1()
-{
+void curve1() {
   printf("curve\n");
-  if (!curve1_enable)
-  {
+  if (!curve1_enable) {
     return;
   }
   int duration = 1000 * 1000 / 30; // 30 fps
   pup_motor_reset_count(left);
   pup_motor_reset_count(right);
-  while (1)
-  {
+  while (1) {
     double diff = line_monitor.get_differences();
     curve_pid->run(diff);
 
@@ -323,26 +294,22 @@ void curve1()
     // int blue = line_monitor.get_blue_count();
     // printf("blue:%d\n", blue);
 
-    if (left_count >= curve1_end && right_count >= curve1_end)
-    {
+    if (left_count >= curve1_end && right_count >= curve1_end) {
       break;
     }
     tslp_tsk(duration);
   }
 }
 
-void straight2()
-{
+void straight2() {
   printf("straight2\n");
-  if (!straight2_enable)
-  {
+  if (!straight2_enable) {
     return;
   }
   int duration = 1000 * 1000 / 30; // 30 fps
   pup_motor_reset_count(left);
   pup_motor_reset_count(right);
-  while (1)
-  {
+  while (1) {
     double diff = line_monitor.get_differences();
     straight_pid->run(diff);
 
@@ -355,49 +322,41 @@ void straight2()
     // int blue = line_monitor.get_blue_count();
     // printf("blue:%d\n", blue);
 
-    if (left_count >= straight2_end && right_count >= straight2_end)
-    {
+    if (left_count >= straight2_end && right_count >= straight2_end) {
       break;
     }
     tslp_tsk(duration);
   }
 }
 
-void curve2()
-{
-  if (!curve2_enable)
-  {
+void curve2() {
+  if (!curve2_enable) {
     return;
   }
 
   int duration = 1000 * 1000 / 30; // 30 fps
-  while (1)
-  {
+  while (1) {
     double diff = line_monitor.get_differences();
 
     curve_pid->run(diff);
 
     int left_count = pup_motor_get_count(left);
     int right_count = pup_motor_get_count(right);
-    if (left_count >= curve2_end && right_count >= curve2_end)
-    {
+    if (left_count >= curve2_end && right_count >= curve2_end) {
       break;
     }
     tslp_tsk(duration);
   }
 }
 
-void kukan0()
-{
+void kukan0() {
   printf("kukan0\n");
-  if (!kukan0_enable)
-  {
+  if (!kukan0_enable) {
     return;
   }
 
   int duration = 1000 * 1000 / 30; // 30 fps
-  while (1)
-  {
+  while (1) {
     double diff = line_monitor.get_differences();
     kukan1_pid->run(diff);
 
@@ -407,26 +366,21 @@ void kukan0()
     // printf("left:%d,right:%d\n", left_count, right_count);
     // printf("blue:%d\n", blue);
 
-    if (blue < kukan1_)
-    {
+    if (blue < kukan1_) {
       break;
     }
     tslp_tsk(duration);
   }
 }
 
-
-void kukan1()
-{
+void kukan1() {
   printf("kukan1\n");
-  if (!kukan1_enable)
-  {
+  if (!kukan1_enable) {
     return;
   }
 
   int duration = 1000 * 1000 / 30; // 30 fps
-  while (1)
-  {
+  while (1) {
     double diff = line_monitor.get_differences();
     kukan1_pid->run(diff);
 
@@ -437,27 +391,23 @@ void kukan1()
     int blue = line_monitor.get_blue_count();
     // printf("blue:%d\n", blue);
 
-    if (blue < kukan1_end)
-    {
+    if (blue < kukan1_end) {
       break;
     }
     tslp_tsk(duration);
   }
 }
 
-void kukan2()
-{
+void kukan2() {
   printf("kukan2\n");
-  if (!kukan2_enable)
-  {
+  if (!kukan2_enable) {
     return;
   }
 
   line_monitor.set_trace_left(false);
 
   int duration = 1000 * 1000 / 30; // 30 fps
-  while (1)
-  {
+  while (1) {
     double diff = line_monitor.get_differences();
     kukan1_pid->run(diff);
 
@@ -471,8 +421,7 @@ void kukan2()
     int blue = line_monitor.get_blue_count();
     // printf("blue:%d\n", blue);
 
-    if (blue >= kukan2_end)
-    {
+    if (blue >= kukan2_end) {
       break;
     }
 
@@ -480,19 +429,16 @@ void kukan2()
   }
 }
 
-void kukan3()
-{
+void kukan3() {
   printf("kukan3\n");
-  if (!kukan3_enable)
-  {
+  if (!kukan3_enable) {
     return;
   }
 
   line_monitor.set_trace_left(true);
 
   int duration = 1000 * 1000 / 30; // 30 fps
-  while (1)
-  {
+  while (1) {
     double diff = line_monitor.get_differences();
     kukan1_pid->run(diff);
 
@@ -506,8 +452,7 @@ void kukan3()
     int blue = line_monitor.get_blue_count();
     // printf("blue:%d\n", blue);
 
-    if (blue >= kukan3_end)
-    {
+    if (blue >= kukan3_end) {
       break;
     }
 
@@ -547,8 +492,7 @@ void pid_run() {
 }
 */
 
-void stop()
-{
+void stop() {
   pup_motor_stop(left);
   pup_motor_stop(right);
 }
