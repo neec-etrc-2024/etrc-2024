@@ -8,6 +8,6 @@ using namespace nlohmann;
 
 extern json config;
 
-extern void loadConfig();
+extern void loadConfig(const char *filename);
 
 #endif // _JSONPARSER_HPP_

@@ -21,7 +21,7 @@ void WindowManager::update_th(FrameBuffer *buf) {
       return;
     }
     if (windows.size() > 0) {
-      update_window(0, frame);
+      update_window(1, frame);
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(1000 / 30));
   }

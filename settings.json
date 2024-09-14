@@ -1,5 +1,5 @@
 {
-    "window": false,
+    "window": true,
     "scenarios": [
         {
             "name": "straight1",
@@ -87,3 +87,4 @@
         "end": 300
     }
 }
+

@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "FrameBuffer.hpp"
 #include "JsonParser.hpp"
+#include "Pid.hpp"
 #include "devices/CameraController.hpp"
 #include "gui/WindowManager.hpp"
 #include "informations/CameraLineMonitor.hpp"
@@ -21,40 +22,10 @@ extern "C" {
 #include "spike/pup/ultrasonicsensor.h"
 }
 
-#include "Pid.hpp"
-
-bool window_enabled = false;
-bool straight1_enable = false;
-bool straight2_enable = false;
-bool curve1_enable = false;
-bool curve2_enable = false;
-bool kukan0_enable = false;
-bool kukan1_enable = false;
-bool kukan2_enable = false;
-bool kukan3_enable = false;
-int straight1_end = 0;
-int straight2_end = 0;
-int kukan0_end = 0;
-int kukan1_end = 0;
-int kukan2_end = 0;
-int kukan3_end = 0;
-int curve1_end = 0;
-int curve2_end = 0;
-pup_motor_t *left = nullptr;
-pup_motor_t *right = nullptr;
-pup_device_t *ultrasonic_sensor = nullptr;
-Pid *kukan1_pid = nullptr;
-Pid *kukan2_pid = nullptr;
-Pid *kukan3_pid = nullptr;
-Pid *straight_pid = nullptr;
-Pid *curve_pid = nullptr;
-informations::CameraLineMonitor line_monitor;
-
-WindowManager wm;
-CameraController cam;
-FrameBuffer fb;
-
 void calc();
+
+void test1();
+
 void setup_motor();
 void setup_ultrasonic_sensor();
 void wait_start();
@@ -69,13 +40,40 @@ void kukan2();
 void kukan3();
 void stop();
 void setup_pid();
-void move_kukan(bool enable_flag, Pid *profile_name, int end, bool trace_left,
-                bool blue_check = true);
-void move(bool enable_flag, Pid *profile_name, int end);
+
+WindowManager wm;
+CameraController cam;
+FrameBuffer fb;
+informations::CameraLineMonitor line_monitor;
+
+pup_motor_t *left = NULL;
+pup_motor_t *right = NULL;
+pup_device_t *ultrasonic_sensor = NULL;
+
+bool window_enabled = false;
+bool straight1_enable = false;
+bool straight2_enable = false;
+bool curve1_enable = false;
+bool curve2_enable = false;
+bool kukan1_enable = false;
+bool kukan2_enable = false;
+bool kukan3_enable = false;
+int straight1_end = 0;
+int straight2_end = 0;
+int kukan1_end = 0;
+int kukan2_end = 0;
+int kukan3_end = 0;
+int curve1_end = 0;
+int curve2_end = 0;
+
+Pid *straight_pid = nullptr;
+Pid *kukan1_pid = nullptr;
+Pid *curve_pid = nullptr;
 
 void main_task(intptr_t unused) { // main_task 最初に呼ばれる
 
   loadConfig("etrc-2024/settings.json");
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   setup_motor();
   setup_ultrasonic_sensor();
@@ -130,6 +128,7 @@ void main_task(intptr_t unused) { // main_task 最初に呼ばれる
 
   printf("READY\n");
 
+  int duration = 1000 * 1000 / 30; // 30 fps
   wait_start();
   printf("START\n");
 
@@ -163,6 +162,12 @@ void calc() {
     }
     line_monitor.update(frame, &fb);
     std::this_thread::sleep_for(std::chrono::milliseconds(1000 / 30));
+  }
+}
+
+void test1() {
+  while (1) {
+    tslp_tsk(10 * 1000);
   }
 }
 
@@ -219,7 +224,7 @@ void setup_pid() {
   straight2_enable = config["straight2"]["enable"];
   curve1_enable = config["curve1"]["enable"];
   curve2_enable = config["curve2"]["enable"];
-  kukan0_enable = config["kukan0"]["enable"];
+  // kukan0_enable = config["kukan0"]["enable"];
   kukan1_enable = config["kukan1"]["enable"];
   kukan2_enable = config["kukan2"]["enable"];
   kukan3_enable = config["kukan3"]["enable"];
@@ -228,7 +233,7 @@ void setup_pid() {
   straight2_end = config["straight2"]["end"];
   curve1_end = config["curve1"]["end"];
   curve2_end = config["curve2"]["end"];
-  kukan0_end = config["kukan0"]["end"];
+  // kukan0_end = config["kukan0"]["end"];
   kukan1_end = config["kukan1"]["end"];
   kukan2_end = config["kukan2"]["end"];
   kukan3_end = config["kukan3"]["end"];
@@ -241,34 +246,18 @@ void setup_pid() {
   kd = config["kukan1"]["d"];
 
   kukan1_pid = new Pid(left, right, LEFT, kp, ki, kd, base_power);
-
-  base_power = config["kukan2"]["base_speed"];
-  kp = config["kukan2"]["p"];
-  ki = config["kukan2"]["i"];
-  kd = config["kukan2"]["d"];
-
-  kukan2_pid = new Pid(left, right, LEFT, kp, ki, kd, base_power);
-
-  base_power = config["kukan3"]["base_speed"];
-  kp = config["kukan3"]["p"];
-  ki = config["kukan3"]["i"];
-  kd = config["kukan3"]["d"];
-
-  kukan3_pid = new Pid(left, right, LEFT, kp, ki, kd, base_power);
 }
 
-void move(bool enable_flag, Pid *profile_name, int end) {
-  if (!enable_flag) {
+void straight1() {
+  printf("straight1\n");
+  if (!straight1_enable) {
     return;
   }
-
-  // モーターリセット
-  pup_motor_reset_count(left);
-  pup_motor_reset_count(right);
-
+  int duration = 1000 * 1000 / 30; // 30 fps
   while (1) {
     double diff = line_monitor.get_differences();
-    profile_name->run(diff);
+    straight_pid->run(diff);
+
     int left_count = pup_motor_get_count(left);
     int right_count = pup_motor_get_count(right);
 
@@ -278,24 +267,150 @@ void move(bool enable_flag, Pid *profile_name, int end) {
     // int blue = line_monitor.get_blue_count();
     // printf("blue:%d\n", blue);
 
-    if (left_count >= end && right_count >= end) {
+    if (left_count >= straight1_end && right_count >= straight1_end) {
       break;
     }
-    tslp_tsk(DURATION);
+    tslp_tsk(duration);
   }
 }
 
-void move_kukan(bool enable_flag, Pid *profile_name, int end, bool trace_left,
-                bool blue_check) {
-  if (!enable_flag) {
+void curve1() {
+  printf("curve\n");
+  if (!curve1_enable) {
+    return;
+  }
+  int duration = 1000 * 1000 / 30; // 30 fps
+  pup_motor_reset_count(left);
+  pup_motor_reset_count(right);
+  while (1) {
+    double diff = line_monitor.get_differences();
+    curve_pid->run(diff);
+
+    int left_count = pup_motor_get_count(left);
+    int right_count = pup_motor_get_count(right);
+
+    // printf("left:%d,right:%d\n", left_count, right_count);
+    // int wid = line_monitor.get_line_width();
+    // printf("width:%d\n", wid);
+    // int blue = line_monitor.get_blue_count();
+    // printf("blue:%d\n", blue);
+
+    if (left_count >= curve1_end && right_count >= curve1_end) {
+      break;
+    }
+    tslp_tsk(duration);
+  }
+}
+
+void straight2() {
+  printf("straight2\n");
+  if (!straight2_enable) {
+    return;
+  }
+  int duration = 1000 * 1000 / 30; // 30 fps
+  pup_motor_reset_count(left);
+  pup_motor_reset_count(right);
+  while (1) {
+    double diff = line_monitor.get_differences();
+    straight_pid->run(diff);
+
+    int left_count = pup_motor_get_count(left);
+    int right_count = pup_motor_get_count(right);
+
+    // printf("left:%d,right:%d\n", left_count, right_count);
+    // int wid = line_monitor.get_line_width();
+    // printf("width:%d\n", wid);
+    // int blue = line_monitor.get_blue_count();
+    // printf("blue:%d\n", blue);
+
+    if (left_count >= straight2_end && right_count >= straight2_end) {
+      break;
+    }
+    tslp_tsk(duration);
+  }
+}
+
+void curve2() {
+  if (!curve2_enable) {
     return;
   }
 
-  line_monitor.set_trace_left(trace_left);
-
+  int duration = 1000 * 1000 / 30; // 30 fps
   while (1) {
     double diff = line_monitor.get_differences();
-    profile_name->run(diff);
+
+    curve_pid->run(diff);
+
+    int left_count = pup_motor_get_count(left);
+    int right_count = pup_motor_get_count(right);
+    if (left_count >= curve2_end && right_count >= curve2_end) {
+      break;
+    }
+    tslp_tsk(duration);
+  }
+}
+
+void kukan0() {
+  printf("kukan0\n");
+  if (0 /*!kukan0_enable*/) {
+    return;
+  }
+
+  int duration = 1000 * 1000 / 30; // 30 fps
+  while (1) {
+    double diff = line_monitor.get_differences();
+    kukan1_pid->run(diff);
+
+    int left_count = pup_motor_get_count(left);
+    int right_count = pup_motor_get_count(right);
+
+    // printf("left:%d,right:%d\n", left_count, right_count);
+    // printf("blue:%d\n", blue);
+
+    if (1) {
+      break;
+    }
+    tslp_tsk(duration);
+  }
+}
+
+void kukan1() {
+  printf("kukan1\n");
+  if (!kukan1_enable) {
+    return;
+  }
+
+  int duration = 1000 * 1000 / 30; // 30 fps
+  while (1) {
+    double diff = line_monitor.get_differences();
+    kukan1_pid->run(diff);
+
+    int left_count = pup_motor_get_count(left);
+    int right_count = pup_motor_get_count(right);
+
+    // printf("left:%d,right:%d\n", left_count, right_count);
+    int blue = line_monitor.get_blue_count();
+    // printf("blue:%d\n", blue);
+
+    if (blue < kukan1_end) {
+      break;
+    }
+    tslp_tsk(duration);
+  }
+}
+
+void kukan2() {
+  printf("kukan2\n");
+  if (!kukan2_enable) {
+    return;
+  }
+
+  line_monitor.set_trace_left(false);
+
+  int duration = 1000 * 1000 / 30; // 30 fps
+  while (1) {
+    double diff = line_monitor.get_differences();
+    kukan1_pid->run(diff);
 
     int left_count = pup_motor_get_count(left);
     int right_count = pup_motor_get_count(right);
@@ -307,61 +422,76 @@ void move_kukan(bool enable_flag, Pid *profile_name, int end, bool trace_left,
     int blue = line_monitor.get_blue_count();
     // printf("blue:%d\n", blue);
 
-    if (blue_check) {
-      // ブルーを検知した場合にbreak
-      if (blue >= end) {
-        break;
-      }
-    } else {
-      // ブルーが検知されない場合にbreak
-      if (blue < kukan1_end) {
-        break;
-      }
+    if (blue >= kukan2_end) {
+      break;
     }
 
-    tslp_tsk(DURATION);
+    tslp_tsk(duration);
   }
-}
-
-void straight1() {
-  printf("straight1\n");
-  move(straight1_enable, straight_pid, straight1_end);
-}
-
-void curve1() {
-  printf("curve1\n");
-  move(curve1_enable, curve_pid, curve1_end);
-}
-
-void straight2() {
-  printf("straight2\n");
-  move(straight2_enable, straight_pid, straight2_end);
-}
-
-void curve2() {
-  printf("curve2\n");
-  move(curve2_enable, curve_pid, curve2_end);
-}
-
-void kukan0() {
-  printf("kukan0\n");
-  move(kukan0_enable, kukan1_pid, kukan0_end);
-}
-
-void kukan1() {
-  printf("kukan1\n");
-  move_kukan(kukan1_enable, kukan1_pid, kukan1_end, false, false);
-}
-
-void kukan2() {
-  printf("kukan2\n");
-  move_kukan(kukan2_enable, kukan2_pid, kukan2_end, false);
 }
 
 void kukan3() {
   printf("kukan3\n");
-  move_kukan(kukan3_enable, kukan3_pid, kukan3_end, false);
+  if (!kukan3_enable) {
+    return;
+  }
+
+  line_monitor.set_trace_left(true);
+
+  int duration = 1000 * 1000 / 30; // 30 fps
+  while (1) {
+    double diff = line_monitor.get_differences();
+    kukan1_pid->run(diff);
+
+    int left_count = pup_motor_get_count(left);
+    int right_count = pup_motor_get_count(right);
+
+    // printf("left:%d,right:%d\n", left_count, right_count);
+    int wid = line_monitor.get_line_width();
+    printf("width:%d\n", wid);
+
+    int blue = line_monitor.get_blue_count();
+    // printf("blue:%d\n", blue);
+
+    if (blue >= kukan3_end) {
+      break;
+    }
+
+    tslp_tsk(duration);
+  }
 }
+
+/*
+void pid_run() {
+  printf("pid_run\n");
+
+  if (!straight_enable) {
+    return;
+  }
+
+  // line_monitor.set_trace_left(false);
+
+  int duration = 1000 * 1000 / 30; // 30 fps
+  while (1) {
+    double diff = line_monitor.get_differences();
+    straight_pid->run(diff);
+
+    int left_count = pup_motor_get_count(left);
+    int right_count = pup_motor_get_count(right);
+
+    // printf("left:%d,right:%d\n", left_count, right_count);
+    // int wid = line_monitor.get_line_width();
+    // printf("width:%d\n", wid);
+    int blue = line_monitor.get_blue_count();
+    // printf("blue:%d\n", blue);
+
+    if (blue >= straight_end) {
+      break;
+    }
+    tslp_tsk(duration);
+  }
+}
+*/
 
 void stop() {
   pup_motor_stop(left);
