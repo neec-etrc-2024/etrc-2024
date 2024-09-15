@@ -35,7 +35,7 @@ void CameraController::capture() {
     mtx.lock();
     this->frame = frame;
     wm.update_window(0, frame);
-    videoWriter << frame;
+    // videoWriter << frame;
     mtx.unlock();
   }
 }

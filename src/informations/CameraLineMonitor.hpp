@@ -1,6 +1,8 @@
 #ifndef _CAMERA_LINE_MONITOR_HPP_
 #define _CAMERA_LINE_MONITOR_HPP_
 
+#include "FrameBuffer.hpp"
+#include "gui/WindowManager.hpp"
 #include <atomic>
 #include <informations/ILineMonitor.hpp>
 #include <mutex>
@@ -18,7 +20,7 @@ private:
 public:
   CameraLineMonitor();
   double get_differences() override;
-  void update(cv::Mat &img, int window_id = -1);
+  void update(cv::Mat &img, FrameBuffer *buf = nullptr);
   int get_line_width() { return line_width.load(); }
   int get_blue_count() { return blue_count.load(); }
   void set_trace_left(bool trace_left) { this->trace_left.store(trace_left); }

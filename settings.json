@@ -1,0 +1,123 @@
+{
+    "mode": "R",
+    "window": false,
+    "scenarios": [
+        {
+            "name": "straight1",
+            "base_speed": 50,
+            "p": 30,
+            "i": 0.0,
+            "d": 50,
+            "end": 2900,
+            "enable": true,
+            "mode": "distance",
+            "check_mode": "",
+            "edge": "LEFT",
+            "debug": true
+        },
+        {
+            "name": "curve1",
+            "base_speed": 50,
+            "p": 60,
+            "i": 0.0,
+            "d": 100,
+            "end": 500,
+            "enable": true,
+            "mode": "distance",
+            "check_mode": "",
+            "edge": "LEFT",
+            "debug": true
+        },
+        {
+            "name": "straight2",
+            "base_speed": 50,
+            "p": 30,
+            "i": 0.0,
+            "d": 50,
+            "end": 1600,
+            "enable": true,
+            "mode": "distance",
+            "check_mode": "",
+            "edge": "LEFT",
+            "debug": true
+        },
+        {
+            "name": "curve2",
+            "base_speed": 50,
+            "p": 60,
+            "i": 0.0,
+            "d": 100,
+            "end": 500,
+            "enable": true,
+            "mode": "distance",
+            "check_mode": "",
+            "edge": "LEFT",
+            "debug": true
+        },
+        {
+            "name": "kukan0",
+            "base_speed": 50,
+            "p": 12,
+            "i": 0.0,
+            "d": 120,
+            "end": 200,
+            "enable": true,
+            "mode": "distance",
+            "check_mode": "",
+            "edge": "LEFT",
+            "debug": true
+        },
+        {
+            "name": "kukan1",
+            "base_speed": 50,
+            "p": 30,
+            "i": 0.0,
+            "d": 0,
+            "end": 50000,
+            "enable": false,
+            "mode": "color",
+            "check_mode": "",
+            "edge": "LEFT",
+            "debug": true
+        },
+        {
+            "name": "kukan2",
+            "base_speed": 50,
+            "p": 30,
+            "i": 0.0,
+            "d": 0,
+            "end": 80000,
+            "enable": true,
+            "mode": "color",
+            "check_mode": "over",
+            "edge": "RIGHT",
+            "debug": true
+        },
+        {
+            "name": "kukan3",
+            "base_speed": 50,
+            "p": 30,
+            "i": 0.0,
+            "d": 0,
+            "end": 50000,
+            "enable": true,
+            "mode": "color",
+            "check_mode": "over",
+            "edge": "LEFT",
+            "debug": true
+        },
+        {
+            "name": "kukan4",
+            "base_speed": 50,
+            "p": 30,
+            "i": 0.0,
+            "d": 0,
+            "end": 50000,
+            "enable": true,
+            "mode": "color",
+            "check_mode": "over",
+            "edge": "RIGHT",
+            "debug": true
+        }
+    ]
+}

@@ -1,4 +1,6 @@
 #include "gui/WindowManager.hpp"
+#include <chrono>
+#include <thread>
 
 void WindowManager::main_th(int w, int h) {
   Fl::lock();
@@ -9,6 +11,20 @@ void WindowManager::main_th(int w, int h) {
   printf("TRUE\n");
   Fl::run();
   Fl::unlock();
+}
+
+void WindowManager::update_th(FrameBuffer *buf) {
+  while (true) {
+    cv::Mat frame;
+    frame = buf->pop();
+    if (frame.empty()) {
+      return;
+    }
+    if (windows.size() > 0) {
+      update_window(1, frame);
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000 / 30));
+  }
 }
 
 int WindowManager::create_window(int w, int h, std::string title) {

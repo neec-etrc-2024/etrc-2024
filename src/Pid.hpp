@@ -8,13 +8,10 @@ extern "C" {
 #include "spike/pup/ultrasonicsensor.h"
 }
 
-enum DIRECTION { LEFT, RIGHT };
-
 class Pid {
 private:
   pup_motor_t *left = nullptr;
   pup_motor_t *right = nullptr;
-  DIRECTION direction;
   int base_power;
   double kp;
   double ki;
@@ -23,10 +20,10 @@ private:
   double sum_diff;
 
 public:
-  Pid(pup_motor_t *left, pup_motor_t *right, DIRECTION direction, double kp,
-      double ki, double kd, int base_power)
-      : left(left), right(right), direction(direction), kp(kp), ki(ki), kd(kd),
-        prev_diff(0), sum_diff(0), base_power(base_power) {};
+  Pid(pup_motor_t *left, pup_motor_t *right, double kp, double ki, double kd,
+      int base_power)
+      : left(left), right(right), kp(kp), ki(ki), kd(kd), prev_diff(0),
+        sum_diff(0), base_power(base_power) {};
 
   void run(double diff);
   ~Pid() {};
