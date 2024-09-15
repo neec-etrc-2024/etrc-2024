@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "FrameBuffer.hpp"
-#include "JsonParser.hpp"
+#include "JsonWrapper.hpp"
+#include "ScenarioRunner.hpp"
 #include "devices/CameraController.hpp"
 #include "gui/WindowManager.hpp"
 #include "informations/CameraLineMonitor.hpp"
@@ -23,63 +24,68 @@ extern "C" {
 
 #include "Pid.hpp"
 
-bool window_enabled = false;
-bool straight1_enable = false;
-bool straight2_enable = false;
-bool curve1_enable = false;
-bool curve2_enable = false;
-bool kukan0_enable = false;
-bool kukan1_enable = false;
-bool kukan2_enable = false;
-bool kukan3_enable = false;
-int straight1_end = 0;
-int straight2_end = 0;
-int kukan0_end = 0;
-int kukan1_end = 0;
-int kukan2_end = 0;
-int kukan3_end = 0;
-int curve1_end = 0;
-int curve2_end = 0;
 pup_motor_t *left = nullptr;
 pup_motor_t *right = nullptr;
 pup_device_t *ultrasonic_sensor = nullptr;
-Pid *kukan1_pid = nullptr;
-Pid *kukan2_pid = nullptr;
-Pid *kukan3_pid = nullptr;
-Pid *straight_pid = nullptr;
-Pid *curve_pid = nullptr;
 informations::CameraLineMonitor line_monitor;
 
 WindowManager wm;
 CameraController cam;
 FrameBuffer fb;
 
-void calc();
+JsonWrapper *config;
+
+ScenarioRunner *runner;
+
+bool window_enabled = false;
+
+void read_json(const char *path) {
+  std::ifstream ifs(path);
+  json data = nlohmann::json::parse(ifs);
+  config = new JsonWrapper(data);
+  ifs.close();
+  if (config->getValue("mode") == "R") {
+    printf("R mode\n");
+    for (auto &elem : data["scenarios"]) {
+      if (elem["edge"] == "LEFT") {
+        elem["edge"] = "RIGHT";
+      } else {
+        elem["edge"] = "LEFT";
+      }
+    }
+    delete config;
+    config = new JsonWrapper(data);
+  } else {
+    printf("L mode\n");
+  }
+
+  json arr = config->getValueArray("scenarios").value();
+  for (auto &elem : arr) {
+    JsonWrapper json_wrapper(elem);
+    std::string mode = json_wrapper.getValue("edge").value();
+    printf("edge: %s\n", mode.c_str());
+  }
+}
+
+void setup_scenario();
+void run();
 void setup_motor();
 void setup_ultrasonic_sensor();
+void calc();
 void wait_start();
-void straight1();
-void curve1();
-void curve2();
-void straight2();
-void pid_run();
-void kukan0();
-void kukan1();
-void kukan2();
-void kukan3();
 void stop();
-void setup_pid();
-void move_kukan(bool enable_flag, Pid *profile_name, int end, bool trace_left,
-                bool blue_check = true);
-void move(bool enable_flag, Pid *profile_name, int end);
+void wait_start_btn();
 
 void main_task(intptr_t unused) { // main_task 最初に呼ばれる
 
-  loadConfig("etrc-2024/settings.json");
+  read_json("etrc-2024/settings.json");
 
   setup_motor();
   setup_ultrasonic_sensor();
-  setup_pid();
+
+  setup_scenario();
+
+  window_enabled = config->getValueBool("window").value();
 
   printf("init\n");
 
@@ -130,23 +136,21 @@ void main_task(intptr_t unused) { // main_task 最初に呼ばれる
 
   printf("READY\n");
 
-  wait_start();
+  // wait_start();
+  wait_start_btn();
   printf("START\n");
 
-  straight1();
-  curve1();
-  straight2();
-  curve2();
-  kukan0();
-  kukan1();
-  kukan2();
-  kukan3();
-  // curve();
+  run();
   stop();
 
   for (auto &th : threads) {
     th.join();
   }
+}
+
+void setup_scenario() {
+  runner = new ScenarioRunner(*config->getValueArray("scenarios"), left, right,
+                              &line_monitor);
 }
 
 void calc() {
@@ -177,6 +181,17 @@ void wait_start() {
   }
 }
 
+void wait_start_btn() {
+  while (1) {
+    hub_button_t pressed;
+    hub_button_is_pressed(&pressed);
+    if (pressed == HUB_BUTTON_BT) {
+      break;
+    }
+    tslp_tsk(10 * 1000);
+  }
+}
+
 void setup_motor() {
   left = pup_motor_get_device(LEFT_MOTOR_PORT);
   right = pup_motor_get_device(RIGHT_MOTOR_PORT);
@@ -201,166 +216,13 @@ void setup_ultrasonic_sensor() {
   }
 }
 
-void setup_pid() {
-  window_enabled = config["window"];
-  int base_power = config["straight1"]["base_speed"];
-  int kp = config["straight1"]["p"];
-  double ki = config["straight1"]["i"];
-  int kd = config["straight1"]["d"];
-
-  straight_pid = new Pid(left, right, LEFT, kp, ki, kd, base_power);
-
-  base_power = config["curve1"]["base_speed"];
-  kp = config["curve1"]["p"];
-  ki = config["curve1"]["i"];
-  kd = config["curve1"]["d"];
-
-  straight1_enable = config["straight1"]["enable"];
-  straight2_enable = config["straight2"]["enable"];
-  curve1_enable = config["curve1"]["enable"];
-  curve2_enable = config["curve2"]["enable"];
-  kukan0_enable = config["kukan0"]["enable"];
-  kukan1_enable = config["kukan1"]["enable"];
-  kukan2_enable = config["kukan2"]["enable"];
-  kukan3_enable = config["kukan3"]["enable"];
-
-  straight1_end = config["straight1"]["end"];
-  straight2_end = config["straight2"]["end"];
-  curve1_end = config["curve1"]["end"];
-  curve2_end = config["curve2"]["end"];
-  kukan0_end = config["kukan0"]["end"];
-  kukan1_end = config["kukan1"]["end"];
-  kukan2_end = config["kukan2"]["end"];
-  kukan3_end = config["kukan3"]["end"];
-
-  curve_pid = new Pid(left, right, LEFT, kp, ki, kd, base_power);
-
-  base_power = config["kukan1"]["base_speed"];
-  kp = config["kukan1"]["p"];
-  ki = config["kukan1"]["i"];
-  kd = config["kukan1"]["d"];
-
-  kukan1_pid = new Pid(left, right, LEFT, kp, ki, kd, base_power);
-
-  base_power = config["kukan2"]["base_speed"];
-  kp = config["kukan2"]["p"];
-  ki = config["kukan2"]["i"];
-  kd = config["kukan2"]["d"];
-
-  kukan2_pid = new Pid(left, right, LEFT, kp, ki, kd, base_power);
-
-  base_power = config["kukan3"]["base_speed"];
-  kp = config["kukan3"]["p"];
-  ki = config["kukan3"]["i"];
-  kd = config["kukan3"]["d"];
-
-  kukan3_pid = new Pid(left, right, LEFT, kp, ki, kd, base_power);
-}
-
-void move(bool enable_flag, Pid *profile_name, int end) {
-  if (!enable_flag) {
-    return;
-  }
-
-  // モーターリセット
-  pup_motor_reset_count(left);
-  pup_motor_reset_count(right);
-
+void run() {
   while (1) {
-    double diff = line_monitor.get_differences();
-    profile_name->run(diff);
-    int left_count = pup_motor_get_count(left);
-    int right_count = pup_motor_get_count(right);
-
-    // printf("left:%d,right:%d\n", left_count, right_count);
-    // int wid = line_monitor.get_line_width();
-    // printf("width:%d\n", wid);
-    // int blue = line_monitor.get_blue_count();
-    // printf("blue:%d\n", blue);
-
-    if (left_count >= end && right_count >= end) {
+    if (runner->run()) {
       break;
     }
-    tslp_tsk(DURATION);
+    tslp_tsk(10 * 1000);
   }
-}
-
-void move_kukan(bool enable_flag, Pid *profile_name, int end, bool trace_left,
-                bool blue_check) {
-  if (!enable_flag) {
-    return;
-  }
-
-  line_monitor.set_trace_left(trace_left);
-
-  while (1) {
-    double diff = line_monitor.get_differences();
-    profile_name->run(diff);
-
-    int left_count = pup_motor_get_count(left);
-    int right_count = pup_motor_get_count(right);
-
-    // printf("left:%d,right:%d\n", left_count, right_count);
-    // int wid = line_monitor.get_line_width();
-    // printf("width:%d\n", wid);
-
-    int blue = line_monitor.get_blue_count();
-    // printf("blue:%d\n", blue);
-
-    if (blue_check) {
-      // ブルーを検知した場合にbreak
-      if (blue >= end) {
-        break;
-      }
-    } else {
-      // ブルーが検知されない場合にbreak
-      if (blue < kukan1_end) {
-        break;
-      }
-    }
-
-    tslp_tsk(DURATION);
-  }
-}
-
-void straight1() {
-  printf("straight1\n");
-  move(straight1_enable, straight_pid, straight1_end);
-}
-
-void curve1() {
-  printf("curve1\n");
-  move(curve1_enable, curve_pid, curve1_end);
-}
-
-void straight2() {
-  printf("straight2\n");
-  move(straight2_enable, straight_pid, straight2_end);
-}
-
-void curve2() {
-  printf("curve2\n");
-  move(curve2_enable, curve_pid, curve2_end);
-}
-
-void kukan0() {
-  printf("kukan0\n");
-  move(kukan0_enable, kukan1_pid, kukan0_end);
-}
-
-void kukan1() {
-  printf("kukan1\n");
-  move_kukan(kukan1_enable, kukan1_pid, kukan1_end, false, false);
-}
-
-void kukan2() {
-  printf("kukan2\n");
-  move_kukan(kukan2_enable, kukan2_pid, kukan2_end, false);
-}
-
-void kukan3() {
-  printf("kukan3\n");
-  move_kukan(kukan3_enable, kukan3_pid, kukan3_end, false);
 }
 
 void stop() {

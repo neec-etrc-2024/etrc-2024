@@ -1,6 +1,5 @@
 #include "informations/CameraLineMonitor.hpp"
 #include "FrameBuffer.hpp"
-#include "JsonParser.hpp"
 
 bool sortByYAscXAsc(const cv::Point &a, const cv::Point &b) {
   return (a.y < b.y) || (a.y == b.y && a.x < b.x);
@@ -198,10 +197,10 @@ void informations::CameraLineMonitor::update(cv::Mat &img, FrameBuffer *buf) {
   int diff;
   // trace_left = false;
   if (trace_left.load()) {
-    printf("trace_left\n");
+   // printf("trace_left\n");
     diff = (top_left.x + bottom_left.x) / 2 - roi_w / 2;
   } else {
-    printf("trace_right\n");
+    //printf("trace_right\n");
     diff = (top_right.x + bottom_right.x) / 2 - roi_w / 2;
   }
 
