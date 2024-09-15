@@ -1,5 +1,4 @@
 {
-    "mode": "R",
     "window": false,
     "scenarios": [
         {
@@ -12,7 +11,7 @@
             "enable": true,
             "mode": "distance",
             "check_mode": "",
-            "edge": "LEFT",
+            "edge": "RIGHT",
             "debug": true
         },
         {
@@ -25,20 +24,20 @@
             "enable": true,
             "mode": "distance",
             "check_mode": "",
-            "edge": "LEFT",
+            "edge": "RIGHT",
             "debug": true
         },
         {
             "name": "straight2",
             "base_speed": 50,
-            "p": 30,
+            "p": 15,
             "i": 0.0,
             "d": 50,
             "end": 1600,
             "enable": true,
             "mode": "distance",
             "check_mode": "",
-            "edge": "LEFT",
+            "edge": "RIGHT",
             "debug": true
         },
         {
@@ -51,7 +50,7 @@
             "enable": true,
             "mode": "distance",
             "check_mode": "",
-            "edge": "LEFT",
+            "edge": "RIGHT",
             "debug": true
         },
         {
@@ -64,7 +63,7 @@
             "enable": true,
             "mode": "distance",
             "check_mode": "",
-            "edge": "LEFT",
+            "edge": "RIGHT",
             "debug": true
         },
         {
@@ -77,7 +76,7 @@
             "enable": false,
             "mode": "color",
             "check_mode": "",
-            "edge": "LEFT",
+            "edge": "RIGHT",
             "debug": true
         },
         {
@@ -90,7 +89,7 @@
             "enable": true,
             "mode": "color",
             "check_mode": "over",
-            "edge": "RIGHT",
+            "edge": "LEFT",
             "debug": true
         },
         {
@@ -103,7 +102,7 @@
             "enable": true,
             "mode": "color",
             "check_mode": "over",
-            "edge": "LEFT",
+            "edge": "RIGHT",
             "debug": true
         },
         {
@@ -116,7 +115,7 @@
             "enable": true,
             "mode": "color",
             "check_mode": "over",
-            "edge": "RIGHT",
+            "edge": "LEFT",
             "debug": true
         }
     ]

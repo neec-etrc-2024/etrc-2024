@@ -1,8 +1,24 @@
 #include "informations/CameraLineMonitor.hpp"
-#include "gui/WindowManager.hpp"
+#include "FrameBuffer.hpp"
 
 bool sortByYAscXAsc(const cv::Point &a, const cv::Point &b) {
   return (a.y < b.y) || (a.y == b.y && a.x < b.x);
+}
+
+bool sortByXAscYAsc(const cv::Point &a, const cv::Point &b) {
+  return (a.x < b.x) || (a.x == b.x && a.y < b.y);
+}
+
+bool sortByXAscYDesc(const cv::Point &a, const cv::Point &b) {
+  return (a.x < b.x) || (a.x == b.x && a.y > b.y);
+}
+
+bool sortByXDescYAsc(const cv::Point &a, const cv::Point &b) {
+  return (a.x > b.x) || (a.x == b.x && a.y < b.y);
+}
+
+bool sortByXDescYDesc(const cv::Point &a, const cv::Point &b) {
+  return (a.x > b.x) || (a.x == b.x && a.y > b.y);
 }
 
 bool sortByYAscXDesc(const cv::Point &a, const cv::Point &b) {
@@ -17,11 +33,16 @@ bool sortByYDescXDesc(const cv::Point &a, const cv::Point &b) {
   return (a.y > b.y) || (a.y == b.y && a.x > b.x);
 }
 
+bool comparePointsY(const cv::Point2f &a, const cv::Point2f &b) {
+  return a.y < b.y;
+}
+
 extern WindowManager wm;
 
 int g_roi_w;
+// double epsilon = config["epsilon"];
 
-void informations::CameraLineMonitor::update(cv::Mat &img, int window_id) {
+void informations::CameraLineMonitor::update(cv::Mat &img, FrameBuffer *buf) {
   int roi_x = 520;
   int roi_y = 1032;
   int roi_w = 600;
@@ -105,28 +126,93 @@ void informations::CameraLineMonitor::update(cv::Mat &img, int window_id) {
 
   std::vector<cv::Point> max_contour = contours[idx];
 
-  std::sort(max_contour.begin(), max_contour.end(), sortByYAscXAsc);
+  std::sort(max_contour.begin(), max_contour.end(), sortByXAscYAsc);
   cv::Point top_left = max_contour[0];
-  std::sort(max_contour.begin(), max_contour.end(), sortByYAscXDesc);
+  std::sort(max_contour.begin(), max_contour.end(), sortByXDescYAsc);
   cv::Point top_right = max_contour[0];
-  std::sort(max_contour.begin(), max_contour.end(), sortByYDescXAsc);
+  std::sort(max_contour.begin(), max_contour.end(), sortByXAscYDesc);
   cv::Point bottom_left = max_contour[0];
-  std::sort(max_contour.begin(), max_contour.end(), sortByYDescXDesc);
+  std::sort(max_contour.begin(), max_contour.end(), sortByXDescYDesc);
   cv::Point bottom_right = max_contour[0];
+
+  // 輪郭の近似
+  std::vector<cv::Point> approx;
+  cv::approxPolyDP(max_contour, approx, 0.1 * cv::arcLength(max_contour, true),
+                   true);
+
+  // 輪郭のX最小最大、Y最小最大を求める
+  int min_x = roi_w;
+  int max_x = 0;
+  int min_y = roi_h;
+  int max_y = 0;
+
+  for (size_t i = 0; i < approx.size(); i++) {
+    if (approx[i].x < min_x) {
+      min_x = approx[i].x;
+    }
+    if (approx[i].x > max_x) {
+      max_x = approx[i].x;
+    }
+    if (approx[i].y < min_y) {
+      min_y = approx[i].y;
+    }
+    if (approx[i].y > max_y) {
+      max_y = approx[i].y;
+    }
+  }
+
+  top_left = cv::Point(min_x, min_y);
+  top_right = cv::Point(max_x, min_y);
+  bottom_left = cv::Point(min_x, max_y);
+  bottom_right = cv::Point(max_x, max_y);
+
+  // 描画
+  // cv::drawContours(roi, std::vector<std::vector<cv::Point>>{approx}, -1,
+  //               cv::Scalar(255, 255, 0), 2);
+
+  // 凸包
+  std::vector<cv::Point> hull;
+  cv::convexHull(max_contour, hull);
+
+  // 最小外接矩形
+  cv::RotatedRect rect = cv::minAreaRect(hull);
+
+  cv::Point2f vertices[4];
+  rect.points(vertices);
+
+  // Y昇順でソート
+  std::sort(vertices, vertices + 4, comparePointsY);
+  if (vertices[0].x > vertices[1].x) {
+    std::swap(vertices[0], vertices[1]);
+  }
+  if (vertices[2].x < vertices[3].x) {
+    std::swap(vertices[2], vertices[3]);
+  }
+
+  top_left = vertices[0];
+  top_right = vertices[1];
+  bottom_right = vertices[2];
+  bottom_left = vertices[3];
 
   int diff;
   // trace_left = false;
   if (trace_left.load()) {
-    printf("trace_left\n");
+   // printf("trace_left\n");
     diff = (top_left.x + bottom_left.x) / 2 - roi_w / 2;
   } else {
-    printf("trace_right\n");
+    //printf("trace_right\n");
     diff = (top_right.x + bottom_right.x) / 2 - roi_w / 2;
   }
 
   line_width.store(top_right.x - top_left.x);
 
-  if (window_id >= 0) {
+  if (buf != nullptr) {
+    // top、bottomを囲む
+    cv::line(roi, top_left, top_right, cv::Scalar(0, 0, 255), 2);
+    cv::line(roi, bottom_left, bottom_right, cv::Scalar(0, 0, 255), 2);
+    // left、rightを囲む
+    cv::line(roi, top_left, bottom_left, cv::Scalar(0, 0, 255), 2);
+    cv::line(roi, top_right, bottom_right, cv::Scalar(0, 0, 255), 2);
     // x軸の中心線
     cv::line(roi, cv::Point(roi_w / 2, 0), cv::Point(roi_w / 2, roi_h),
              cv::Scalar(0, 0, 255), 2);
@@ -134,7 +220,14 @@ void informations::CameraLineMonitor::update(cv::Mat &img, int window_id) {
     cv::line(roi, cv::Point(roi_w / 2 + diff, 0),
              cv::Point(roi_w / 2 + diff, roi_h), cv::Scalar(0, 255, 0), 2);
 
-    wm.update_window(window_id, roi);
+    // max_contourの描画
+    /*
+    for (size_t i = 0; i < max_contour.size(); i++) {
+      cv::circle(roi, max_contour[i], 3, cv::Scalar(255, 0, 0), -1);
+    }
+    */
+
+    buf->push(roi);
   }
 
   // 300+-100の範囲に圧縮
